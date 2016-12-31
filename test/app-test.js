@@ -1,86 +1,48 @@
 import test from 'ava';
-import tempfile from 'tempfile';
-import App from '../src/app';
-import { AppServiceRegistration } from "matrix-appservice";
+import { buildFakeApp } from './helpers/app-helper';
 
-
-const appConfig = () => ({
-  puppet: {
-    id: '@me:example.com'
-  },
-  bridge: {
-    roomStore: tempfile('.db'),
-    userStore: tempfile('.db'),
-    homeserverUrl: 'http://example.com',
-    domain: 'example.com',
-    clientFactory: function() {
-      console.log('sup');
+test("getOrCreateMatrixRoomFromThirdPartyRoom creates the room", async t=> {
+  const app = await buildFakeApp({
+    thirdPartyClientApi: {
+      showGroup: ()=> Promise.resolve({ name: 'remote room name' })
     },
-    registration: AppServiceRegistration.fromObject({
-      id: "an_id",
-      hs_token: "h5_t0k3n",
-      as_token: "a5_t0k3n",
-      url: "http://app-service-url",
-      sender_localpart: 'bot',
-      namespaces: {
-        users: [{
-          exclusive: true,
-          regex: "@virtual_.*"
-        }],
-        aliases: [{
-          exclusive: true,
-          regex: "#virtual_.*"
-        }]
-      }
-    })
-  }
-});
-
-test("does not create entries for self-messages", async t=> {
-  let app = new App(appConfig(), {});
-  await app.bridge.loadDatabases();
-  app.thirdPartyUserId = 'same';
-  await app.handleThirdPartyRoomMessage({
-    thirdParty: {
-      roomId: 'rid',
-      senderId: 'same'
+    matrixClientApi: {
+      createRoom: () => Promise.resolve({ room_id: '!matrix:roomid' })
     }
   });
-  let room = await app.bridge.getRoomStore().getEntryById('rid');
-  t.is(room, null);
-});
-
-test("creates, sets power level, and joins room for messages sent by others", async t=> {
-  let app = new App(appConfig(), {});
-  await app.bridge.loadDatabases();
-  app.thirdPartyUserId = 'not same';
-  app.thirdPartyClient = { api: {
-    showGroup: () => Promise.resolve({ name: "remote room name" })
-  } };
-  app.bridge._botClient = { register: ()=>Promise.resolve('ok') };
-  app.bridge._clientFactory = {
-    getClientAs: (userId) => ({
-      credentials: { userId },
-      createRoom: () => Promise.resolve({ room_id: '!matrix:roomid' })
-    })
-  };
-  app.matrixClient = {
-    joinRoom: ()=> Promise.resolve(),
-    setPowerLevel: (roomId, userId, powerLevel) => Promise.all([
-      t.is(roomId, '!matrix:roomid'),
-      t.is(userId, '@me:example.com'),
-      t.is(powerLevel, 100),
-    ])
-  };
-  await app.handleThirdPartyRoomMessage({
-    thirdParty: {
-      roomId: 'remote room id',
-      senderId: 'same'
-    },
-    text: 'hello'
-  });
-  let entry = await app.bridge.getRoomStore().getEntryById('remote room id');
+  const thirdParty = { roomId: 'remote room id' };
+  const [entry, justCreated] = await app.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty);
+  t.is(justCreated, true);
   t.is(entry.remote.roomId, 'remote room id');
   t.is(entry.remote.data.name, 'remote room name');
   t.is(entry.matrix.roomId, '!matrix:roomid');
+});
+
+test('getOrCreateMatrixRoomFromThirdPartyRoom justCreated is false when the room existed', async t => {
+  const app = await buildFakeApp({
+    thirdPartyClientApi: {
+      showGroup: ()=> Promise.resolve({ name: 'remote room name' })
+    },
+    matrixClientApi: {
+      createRoom: () => Promise.resolve({ room_id: '!matrix:roomid' })
+    }
+  });
+  const thirdParty = { roomId: 'remote room id' };
+  await app.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty);
+  const [_, justCreated] = await app.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty);
+  t.is(justCreated, false);
+});
+
+test("getOrCreateMatrixRoomFromThirdPartyRoom provides the intent instance for reuse", async t=> {
+  const app = await buildFakeApp({
+    thirdPartyClientApi: {
+      showGroup: ()=> Promise.resolve({ name: 'remote room name' })
+    },
+    matrixClientApi: {
+      createRoom: () => Promise.resolve({ room_id: '!matrix:roomid' })
+    }
+  });
+  const thirdParty = { roomId: 'remote room id' };
+  const [_1, _2, intent] = await app.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty);
+  t.not(intent.client, null);
 });

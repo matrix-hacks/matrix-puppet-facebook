@@ -30,7 +30,7 @@
   },
   "ava": {
     "files": [
-      "test/*.js"
+      "test/**/*.js"
     ],
     "source": [
       "src/**/*.js"
@@ -63,6 +63,9 @@
       "semi": [
         "error",
         "always"
+      ],
+      "no-unused-vars": [
+        { "argsIgnorePattern": "^_$" }
       ],
       "ava/assertion-arguments": "error",
       "ava/max-asserts": [
