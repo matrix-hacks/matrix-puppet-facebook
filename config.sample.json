@@ -1,7 +1,7 @@
 {
-  "owner": "@kfatehi:synapse.keyvan.pw",
-  "ownerSelfName": "kfatehi",
-  "ownerPassword": "your_matrix_password_here",
+  "groupme": {
+    "accessToken": "your-access-token"
+  },
   "registrationPath": "groupme-registration.yaml",
   "port": 8090,
   "bridge": {
