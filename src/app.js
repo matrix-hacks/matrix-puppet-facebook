@@ -52,6 +52,10 @@ class App extends Base {
       text
     };
   }
+  sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
+    const sendMessage = this.thirdPartyClient.api.sendGroupMessage(id);
+    return sendMessage(text);
+  }
 }
 
 module.exports = App;

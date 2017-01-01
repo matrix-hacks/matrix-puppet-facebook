@@ -1,9 +1,10 @@
-const debug = (...args) => require('debug')(['matrix-puppet','base',...args].join(':'));
+const debug = require('./debug')('Base');
 const Promise = require('bluebird');
 const { Bridge, MatrixRoom, RemoteRoom } = require('matrix-appservice-bridge');
 
 class Base {
   constructor(config, puppet) {
+    const { info } = debug();
     this.config = config;
     this.puppet = puppet;
     this.domain = config.bridge.domain;
@@ -31,6 +32,7 @@ class Base {
         }
       }
     }));
+    info('initialized');
   }
   initThirdPartyClient() {
     throw new Error("override me");
@@ -74,7 +76,7 @@ class Base {
     return this.bridge.getIntent();
   }
   getOrCreateMatrixRoomFromThirdPartyRoomId(thirdPartyRoomId) {
-    const info = debug('getOrCreateMatrixRoomFromThirdPartyRoomId');
+    const { info } = debug(this.getOrCreateMatrixRoomFromThirdPartyRoomId.name);
     const autoJoinNewRoom = true; // false was not tested
     const roomStore = this.bridge.getRoomStore();
     const roomAlias = this.getRoomAliasFromThirdPartyRoomId(thirdPartyRoomId);
@@ -122,7 +124,7 @@ class Base {
     });
   }
   handleThirdPartyRoomMessage(thirdPartyRoomMessageData) {
-    const info = debug('handleThirdPartyRoomMessage');
+    const { info } = debug(this.handleThirdPartyRoomMessage.name);
     info('handling third party room message data', thirdPartyRoomMessageData);
     const {
       thirdParty: {
@@ -153,17 +155,41 @@ class Base {
     });
   }
   handleMatrixEvent(req, _context) {
-    const info = debug(this.handleMatrixEvent.name, 'info');
-    const error = debug(this.handleMatrixEvent.name, 'error');
+    const { info, warn } = debug(this.handleMatrixEvent.name);
     const data = req.getData();
     info('got incoming matrix event of type', data.type);
-    switch (data.type) {
-      case 'm.room.message': return this.handleMatrixMessageEvent();
-      default: return error('ignored last matrix event');
+    if (data.type === 'm.room.message') {
+      return this.handleMatrixMessageEvent(data);
+    } else {
+      return warn('ignored last matrix event');
     }
   }
-  handleMatrixMessageEvent() {
-
+  handleMatrixMessageEvent(data) {
+    const { info, error } = debug(this.handleMatrixMessageEvent.name);
+    const { room_id, content: { body, msgtype } } = data;
+    if (msgtype === 'm.motice') {
+      info("ignoring message of type notice because the only messages of this type that");
+      info("should show up in this room are those that were sent by the bridge itself in");
+      info("response to the user being puppetted having communicated via the 3rd party client");
+    } else if (msgtype === 'm.text') {
+      const roomStore = this.bridge.getRoomStore();
+      info('looking up third party room id using the matrix room id', room_id);
+      return roomStore.getEntriesByMatrixId(room_id).then(entries => {
+        return entries[0].remote.getId();
+      }).catch(err => {
+        error('there were no entries in the local room store matching that matrix room id');
+        error(err.message);
+      }).then(thirdPartyRoomId => {
+        info('got 3rd party room id', thirdPartyRoomId);
+        return this.sendMessageAsPuppetToThirdPartyRoomWithId(thirdPartyRoomId, body);
+      }).catch(err => {
+        error('failed to send message to third party room using the third party client');
+        error(err.stack);
+      });
+    }
+  }
+  sendMessageAsPuppetToThirdPartyRoomWithId(_thirdPartyRoomId, _messageText) {
+    throw new Error('override me');
   }
 }
 
