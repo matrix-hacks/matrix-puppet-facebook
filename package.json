@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "DEBUG=matrix-puppet:* node src/index.js",
     "test": "ava",
     "test:watch": "ava --watch"
   },

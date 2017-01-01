@@ -1,3 +1,4 @@
+const debug = require('debug')('matrix-puppet:base');
 const Promise = require('bluebird');
 const { Bridge, MatrixRoom, RemoteRoom } = require('matrix-appservice-bridge');
 
@@ -77,21 +78,21 @@ class Base {
     const roomStore = this.bridge.getRoomStore();
     const roomAlias = this.getRoomAliasFromThirdPartyRoomId(thirdPartyRoomId);
     return roomStore.getEntryById(roomAlias).then(entry=>{
-      // get or otherwise create the matrix room
+      debug("get or otherwise create the matrix room");
       if ( entry ) return entry;
       else {
-        // it is not in our entry, so lets get the third party info for now so we have it
+        debug("it is not in our entry, so lets get the third party info for now so we have it");
         return this.getThirdPartyRoomDataById(thirdPartyRoomId).then(thirdPartyRoomData => {
-          // our local cache may be empty, so we should find out if this room
-          // is already on matrix and get that first using the room alias
+          debug("our local cache may be empty, so we should find out if this room");
+          debug("is already on matrix and get that first using the room alias");
           const botIntent = this.getIntentFromApplicationServerBot();
           const botClient = botIntent.getClient();
           return botClient.getRoomIdForAlias(roomAlias).then(({room_id}) => {
-            // we got the room ID. so it exists on matrix.
-            // we just need to update our local cache, return the matrix room id for now
+            debug("we got the room ID. so it exists on matrix.");
+            debug("we just need to update our local cache, return the matrix room id for now");
             return room_id;
           }, (_err) => {
-            // the room doesn't exist. we need to create it for the first time
+            debug("the room doesn't exist. we need to create it for the first time");
             return botIntent.createRoom({ createAsClient: true }).then(({room_id}) => {
               return Promise.all([
                 botIntent.createAlias(roomAlias, room_id),
@@ -100,24 +101,27 @@ class Base {
                 autoJoinNewRoom ? this.puppet.getClient().joinRoom(room_id) : botIntent.invite(room_id, this.puppet.id),
                 botIntent.setPowerLevel(room_id, this.puppet.id, 100)
               ]).then(()=>{
-                // now return the matrix room id so we can use it to update the cache
+                debug("now return the matrix room id so we can use it to update the cache");
                 return room_id;
               });
             });
           });
         }).then(matrixRoomId => {
-          // now's the time to update our local cache for this linked room
+          debug("now's the time to update our local cache for this linked room");
           return roomStore.upsertEntry({
             id: roomAlias,
             remote: new RemoteRoom(thirdPartyRoomId),
             matrix: new MatrixRoom(matrixRoomId)
+          }).then(()=> {
+            debug("finally return the entry we were looking for in the first place");
+            return roomStore.getEntryById(roomAlias);
           });
         });
       }
     });
   }
   handleThirdPartyRoomMessage(thirdPartyRoomMessageData) {
-    console.log('handleThirdPartyRoomMessage', thirdPartyRoomMessageData);
+    debug('handling third party room message data', thirdPartyRoomMessageData);
     const {
       thirdParty: {
         roomId,
@@ -129,13 +133,14 @@ class Base {
       text
     } = thirdPartyRoomMessageData;
     return this.getOrCreateMatrixRoomFromThirdPartyRoomId(roomId).then((entry)=> {
-      console.log(entry);
+      debug("room store entry", entry);
       if ( senderId === this.getPuppetThirdPartyUserId() ) {
-        // this message was sent by me, send it as a notice to the matrix bridged room
+        debug("this message was sent by me, send it to the matrix room via puppet as notice");
         return this.puppet.getClient().joinRoom(entry.matrix.roomId).then(()=>{
           this.puppet.getClient().sendNotice(entry.matrix.roomId, text);
         });
       } else {
+        debug("this message was not sent by me, send it the matrix room via ghost user as text");
         const ghostIntent = this.getIntentFromThirdPartySenderId(senderId);
         return Promise.mapSeries([
           () => ghostIntent.setDisplayName(senderName),
