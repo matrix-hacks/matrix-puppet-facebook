@@ -137,9 +137,11 @@ class Base {
         });
       } else {
         const ghostIntent = this.getIntentFromThirdPartySenderId(senderId);
-        return ghostIntent.setDisplayName(senderName).then(()=>{
-          return ghostIntent.sendText(entry.matrix.roomId, text);
-        });
+        return Promise.mapSeries([
+          () => ghostIntent.setDisplayName(senderName),
+          () => ghostIntent.join(entry.matrix.roomId),
+          () => ghostIntent.sendText(entry.matrix.roomId, text),
+        ], p => p());
       }
     });
   }
