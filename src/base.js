@@ -125,7 +125,7 @@ class Base {
   }
   handleThirdPartyRoomMessage(thirdPartyRoomMessageData) {
     const { info } = debug(this.handleThirdPartyRoomMessage.name);
-    info('handling third party room message data', thirdPartyRoomMessageData);
+    info('handling third party room message', thirdPartyRoomMessageData);
     const {
       thirdParty: {
         roomId,
@@ -137,12 +137,14 @@ class Base {
       text
     } = thirdPartyRoomMessageData;
     return this.getOrCreateMatrixRoomFromThirdPartyRoomId(roomId).then((entry)=> {
-      info("room store entry", entry);
       if ( senderId === this.getPuppetThirdPartyUserId() ) {
-        info("this message was sent by me, send it to the matrix room via puppet as notice");
-        return this.puppet.getClient().joinRoom(entry.matrix.roomId).then(()=>{
-          this.puppet.getClient().sendNotice(entry.matrix.roomId, text);
-        });
+        info("this message was sent by me, but did it come from a matrix client or a 3rd party client?");
+        info("if it came from a 3rd party client, we want to repeat it as a 'notice' message type");
+        info("if it came from a matrix client, then it's already in the client, sending again would dupe");
+        return Promise.mapSeries([
+          () => this.puppet.getClient().joinRoom(entry.matrix.roomId),
+          () => this.puppet.getClient().sendNotice(entry.matrix.roomId, text)
+        ], p => p());
       } else {
         info("this message was not sent by me, send it the matrix room via ghost user as text");
         const ghostIntent = this.getIntentFromThirdPartySenderId(senderId);
@@ -155,13 +157,12 @@ class Base {
     });
   }
   handleMatrixEvent(req, _context) {
-    const { info, warn } = debug(this.handleMatrixEvent.name);
+    const { warn } = debug(this.handleMatrixEvent.name);
     const data = req.getData();
-    info('got incoming matrix event of type', data.type);
     if (data.type === 'm.room.message') {
       return this.handleMatrixMessageEvent(data);
     } else {
-      return warn('ignored last matrix event');
+      return warn('ignored a matrix event');
     }
   }
   handleMatrixMessageEvent(data) {
