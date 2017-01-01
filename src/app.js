@@ -17,6 +17,9 @@ class App extends Base {
       });
     });
   }
+  getPuppetThirdPartyUserId() {
+    return this.thirdPartyUserId;
+  }
   getServicePrefix() {
     return "groupme";
   }
