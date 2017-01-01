@@ -12,18 +12,30 @@ const readConfigFile = (jsonFile) => {
   });
 };
 
-module.exports = (jsonFile) => ({
-  createMatrixClient: () => {
-    return readConfigFile(jsonFile).then(config => {
+class Puppet {
+  constructor(jsonFile) {
+    this.jsonFile = jsonFile;
+    this.id = null;
+    this.client = null;
+  }
+  startClient() {
+    return readConfigFile(this.jsonFile).then(config => {
+      this.id = config.puppet.id;
       return matrixSdk.createClient({
         baseUrl: config.bridge.homeserverUrl,
         userId: config.puppet.id,
         accessToken: config.puppet.token
       });
+    }).then(_matrixClient => {
+      this.client = _matrixClient;
+      this.client.startClient();
     });
-  },
-  associate: () => {
-    return readConfigFile(jsonFile).then(config => {
+  }
+  getClient() {
+    return this.client;
+  }
+  associate() {
+    return readConfigFile(this.jsonFile).then(config => {
       console.log([
         'This bridge performs matrix user puppeting.',
         'This means that the bridge logs in as your user and acts on your behalf',
@@ -40,17 +52,19 @@ module.exports = (jsonFile) => ({
         let matrixClient = matrixSdk.createClient(config.bridge.homeserverUrl);
         return matrixClient.loginWithPassword(id, password).then(accessDat => {
           console.log("log in success");
-          return writeFile(jsonFile, JSON.stringify(Object.assign({}, config, {
+          return writeFile(this.jsonFile, JSON.stringify(Object.assign({}, config, {
             puppet: {
               id,
               localpart, 
               token: accessDat.access_token
             }
           }), null, 2)).then(()=>{
-            console.log('Updated config file '+jsonFile);
+            console.log('Updated config file '+this.jsonFile);
           });
         });
       });
     });
   }
-});
+}
+
+module.exports = Puppet;

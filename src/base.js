@@ -5,6 +5,7 @@ class Base {
   constructor(config, puppet) {
     this.config = config;
     this.puppet = puppet;
+    this.domain = config.bridge.domain;
     this.bridge = new Bridge(Object.assign({}, config.bridge, {
       controller: {
         onUserQuery: function(queriedUser) {
@@ -29,12 +30,6 @@ class Base {
         }
       }
     }));
-  }
-  initMatrixClient() {
-    return this.puppet.createMatrixClient().then(matrixClient => {
-      this.matrixClient = matrixClient;
-      this.matrixClient.startClient();
-    });
   }
   initThirdPartyClient() {
     throw new Error("override me");
@@ -66,15 +61,19 @@ class Base {
     throw new Error('override me');
   }
   getGhostUserFromThirdPartySenderId(id) {
-    return "@"+this.getServicePrefix()+"_user"+id+":"+this.config.bridge.domain;
+    return "@"+this.getServicePrefix()+"_user"+id+":"+this.domain;
   }
   getRoomAliasFromThirdPartyRoomId(id) {
-    return "#"+this.getServicePrefix()+"_room"+id+':'+this.config.bridge.domain;
+    return "#"+this.getServicePrefix()+"_room"+id+':'+this.domain;
   }
   getIntentFromThirdPartySenderId(senderId) {
     return this.bridge.getIntent(this.getGhostUserFromThirdPartySenderId(senderId));
   }
-  getOrCreateMatrixRoomFromThirdPartyRoomId(thirdPartyRoomId, intent) {
+  getIntentFromApplicationServerBot() {
+    return this.bridge.getIntent();
+  }
+  getOrCreateMatrixRoomFromThirdPartyRoomId(thirdPartyRoomId) {
+    const autoJoinNewRoom = true; // false was not tested
     const roomStore = this.bridge.getRoomStore();
     const roomAlias = this.getRoomAliasFromThirdPartyRoomId(thirdPartyRoomId);
     return roomStore.getEntryById(roomAlias).then(entry=>{
@@ -85,19 +84,21 @@ class Base {
         return this.getThirdPartyRoomDataById(thirdPartyRoomId).then(thirdPartyRoomData => {
           // our local cache may be empty, so we should find out if this room
           // is already on matrix and get that first using the room alias
-          return this.matrixClient.getRoomIdForAlias(roomAlias).then(({room_id}) => {
+          const botIntent = this.getIntentFromApplicationServerBot();
+          const botClient = botIntent.getClient();
+          return botClient.getRoomIdForAlias(roomAlias).then(({room_id}) => {
             // we got the room ID. so it exists on matrix.
             // we just need to update our local cache, return the matrix room id for now
             return room_id;
           }, (_err) => {
             // the room doesn't exist. we need to create it for the first time
-            return intent.createRoom({ createAsClient: true }).then(({room_id}) => {
+            return botIntent.createRoom({ createAsClient: true }).then(({room_id}) => {
               return Promise.all([
-                intent.createAlias(roomAlias, room_id),
-                intent.setRoomName(room_id, thirdPartyRoomData.name),
-                intent.setRoomTopic(room_id, thirdPartyRoomData.topic),
-                this.matrixClient.joinRoom(room_id),
-                intent.setPowerLevel(room_id, this.config.puppet.id, 100)
+                botIntent.createAlias(roomAlias, room_id),
+                botIntent.setRoomName(room_id, thirdPartyRoomData.name),
+                botIntent.setRoomTopic(room_id, thirdPartyRoomData.topic),
+                autoJoinNewRoom ? this.puppet.getClient().joinRoom(room_id) : botIntent.invite(room_id, this.puppet.id),
+                botIntent.setPowerLevel(room_id, this.puppet.id, 100)
               ]).then(()=>{
                 // now return the matrix room id so we can use it to update the cache
                 return room_id;
@@ -127,19 +128,19 @@ class Base {
       //attachmentUrl,
       text
     } = thirdPartyRoomMessageData;
-    const intent = this.getIntentFromThirdPartySenderId(senderId);
-    if ( senderId === this.getPuppetThirdPartyUserId() ) {
-      // this message was sent by me, send it as a notice to the matrix bridged room
-      // if it isn't already in matrix, it should be relayed over to matrix as a notice
-      // in the meantime, let's ignore it.
-      console.log('ignoring message from myself. should really send it as a notice though');
-      return;
-    }
-    // XXX setDisplayName is too chatty, move it to a better place...
-    return intent.setDisplayName(senderName).then(()=>{
-      return this.getOrCreateMatrixRoomFromThirdPartyRoomId(roomId, intent);
-    }).then(entry => {
-      return intent.sendText(entry.matrix.roomId, text);
+    return this.getOrCreateMatrixRoomFromThirdPartyRoomId(roomId).then((entry)=> {
+      console.log(entry);
+      if ( senderId === this.getPuppetThirdPartyUserId() ) {
+        // this message was sent by me, send it as a notice to the matrix bridged room
+        return this.puppet.getClient().joinRoom(entry.matrix.roomId).then(()=>{
+          this.puppet.getClient().sendNotice(entry.matrix.roomId, text);
+        });
+      } else {
+        const ghostIntent = this.getIntentFromThirdPartySenderId(senderId);
+        return ghostIntent.setDisplayName(senderName).then(()=>{
+          return ghostIntent.sendText(entry.matrix.roomId, text);
+        });
+      }
     });
   }
   handleMatrixEvent(req, _context) { // uses groupme client

@@ -1,12 +1,9 @@
 const config = require('../config.json');
 const { Cli, AppServiceRegistration } = require("matrix-appservice-bridge");
-const puppet = require('./puppet')(__dirname+'/../config.json');
+const Puppet = require('./puppet');
 const App = require('./app');
-
-const queue = require('queue');
-const q = queue();
-q.timeout = 500;
-q.concurrency = 1;
+const path = require('path');
+const puppet = new Puppet(path.join(__dirname, '../config.json' ));
 
 new Cli({
   port: config.port,
@@ -26,7 +23,7 @@ new Cli({
   },
   run: function(port) {
     const app = new App(config, puppet);
-    app.initMatrixClient().then(() => {
+    return puppet.startClient().then(()=>{
       return app.initThirdPartyClient();
     }).then(() => {
       return app.bridge.run(port, config);
