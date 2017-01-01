@@ -13,20 +13,20 @@ class App extends Base {
       console.log('Subscribed to GroupMe user messages');
       userSub.on('line.create', (data) => {
         const thirdParty = this.mapThirdPartyRoomMessageData(data);
-        return this.handleThirdPartyRoomMessage(thirdParty)
+        return this.handleThirdPartyRoomMessage(thirdParty);
       });
     });
   }
   getServicePrefix() {
-    return "groupme"
+    return "groupme";
   }
   getThirdPartyRoomDataById(id) {
     return this.thirdPartyClient.api.showGroup(id).then(data=>{
       return {
         name: data.name,
         topic: data.description,
-      }
-    })
+      };
+    });
   }
   /**
    * Converts the third party service's room message data object to that which we expect in our App
@@ -47,7 +47,7 @@ class App extends Base {
       },
       attachmentUrl: picture_url,
       text
-    }
+    };
   }
 }
 

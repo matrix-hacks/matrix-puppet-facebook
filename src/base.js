@@ -45,7 +45,7 @@ class Base {
    * @param {string} thirdPartyRoomId The unique identifier on the third party's side
    * @returns {Promise->object} Promise resolving object { name:string, topic:string }
    */
-  getThirdPartyRoomDataById(thirdPartyRoomId) {
+  getThirdPartyRoomDataById(_thirdPartyRoomId) {
     throw new Error("override me");
   }
   /**
@@ -57,32 +57,54 @@ class Base {
   getServicePrefix() {
     throw new Error("override me");
   }
-  getGhostFromThirdPartySenderId(senderId) {
-    return "@"+this.getServicePrefix()+"_"+senderId+":"+this.config.bridge.domain;
+  getGhostUserFromThirdPartySenderId(id) {
+    return "@"+this.getServicePrefix()+"_user"+id+":"+this.config.bridge.domain;
+  }
+  getRoomAliasFromThirdPartyRoomId(id) {
+    return "#"+this.getServicePrefix()+"_room"+id+':'+this.config.bridge.domain;
   }
   getIntentFromThirdPartySenderId(senderId) {
-    return this.bridge.getIntent(this.getGhostFromThirdPartySenderId(senderId));
+    return this.bridge.getIntent(this.getGhostUserFromThirdPartySenderId(senderId));
   }
   getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty) {
     const roomStore = this.bridge.getRoomStore();
     const intent = this.getIntentFromThirdPartySenderId(thirdParty.senderId);
-    return roomStore.getEntryById(thirdParty.roomId).then(entry=>{
+    const roomAlias = this.getRoomAliasFromThirdPartyRoomId(thirdParty.roomId);
+    return roomStore.getEntryById(roomAlias).then(entry=>{
       // get or otherwise create the matrix room
-      if ( entry ) return [entry, false, intent];
+      if ( entry ) return entry;
       else {
-        return Promise.all([
-          intent.createRoom({ createAsClient: true }),
-          this.getThirdPartyRoomDataById(thirdParty.roomId)
-        ]).then(([matrixRoom, data]) => {
-          return roomStore.upsertEntry({
-            id: thirdParty.roomId,
-            remote: new RemoteRoom(thirdParty.roomId, data),
-            matrix: new MatrixRoom(matrixRoom.room_id)
+        // it is not in our entry, so lets get the third party info for now so we have it
+        return this.getThirdPartyRoomDataById(thirdParty.roomId).then(thirdPartyRoomData => {
+          // our local cache may be empty, so we should find out if this room
+          // is already on matrix and get that first using the room alias
+          return this.matrixClient.getRoomIdForAlias(roomAlias).then(({room_id}) => {
+            // we got the room ID. so it exists on matrix.
+            // we just need to update our local cache, return the matrix room id for now
+            return room_id;
+          }, (_err) => {
+            // the room doesn't exist. we need to create it for the first time
+            return intent.createRoom({ createAsClient: true }).then(({room_id}) => {
+              return Promise.all([
+                intent.createAlias(roomAlias, room_id),
+                intent.setRoomName(room_id, thirdPartyRoomData.name),
+                intent.setRoomTopic(room_id, thirdPartyRoomData.topic),
+                this.matrixClient.joinRoom(room_id),
+                intent.setPowerLevel(room_id, this.config.puppet.id, 100)
+              ]).then(()=>{
+                // now return the matrix room id so we can use it to update the cache
+                return room_id;
+              });
+            });
           });
-        }).then(()=> Promise.all([
-          roomStore.getEntryById(thirdParty.roomId),
-          true, intent
-        ]))
+        }).then(matrixRoomId => {
+          // now's the time to update our local cache for this linked room
+          return roomStore.upsertEntry({
+            id: roomAlias,
+            remote: new RemoteRoom(thirdParty.roomId),
+            matrix: new MatrixRoom(matrixRoomId)
+          });
+        });
       }
     });
   }
@@ -96,30 +118,11 @@ class Base {
       console.log('ignoring message from myself. should really send it as a notice though');
       return;
     }
-    return this.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty).spread((entry, justCreated, intent) => {
-      // join the room with the puppetted matrix user
-      return this.matrixClient.joinRoom(entry.matrix.roomId).then(()=>{
-        if (justCreated) {
-          console.log('room was just created, doing 1st time setup');
-          // the room was just created, so any 1-time configurations that require
-          // the puppet user to be joined can happen here, namely:
-          // * setting the puppet to have full power
-          // * setting the room name to that of the 3rd party
-          return this.firstTimeRoomConfiguration(entry, intent);
-        }
-      }).then(() => {
-        console.log('room is ready. relay the 3rd party message into it');
-      });
+    return this.getOrCreateMatrixRoomFromThirdPartyRoom(thirdParty).then(entry => {
+      console.log("got or created room, here's the entry", entry);
     });
   }
-  firstTimeRoomConfiguration(entry, intent) {
-    return Promise.all([
-      intent.setPowerLevel(entry.matrix.roomId, this.config.puppet.id, 100),
-      intent.setRoomName(entry.matrix.roomId, entry.remote.data.name),
-      intent.setRoomTopic(entry.matrix.roomId, entry.remote.data.topic)
-    ]);
-  }
-  handleMatrixEvent(req, context) { // uses groupme client
+  handleMatrixEvent(req, _context) { // uses groupme client
     console.log('handle matrix event type', req.getData().type);
   }
 }
