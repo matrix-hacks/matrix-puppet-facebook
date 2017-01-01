@@ -17,6 +17,13 @@ class App extends Base {
       });
     });
   }
+  // GroupMe can handle a discreet deduplication tag
+  defaultDeduplicationTag() {
+    return "\u2063";
+  }
+  defaultDeduplicationTagPattern() {
+    return "\\u2063$";
+  }
   getPuppetThirdPartyUserId() {
     return this.thirdPartyUserId;
   }

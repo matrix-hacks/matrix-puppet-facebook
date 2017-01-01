@@ -8,6 +8,9 @@ class Base {
     this.config = config;
     this.puppet = puppet;
     this.domain = config.bridge.domain;
+    this.deduplicationTag = this.config.deduplicationTag || this.defaultDeduplicationTag();
+    this.deduplicationTagPattern = this.config.deduplicationTagPattern || this.defaultDeduplicationTagPattern();
+    this.deduplicationTagRegex = new RegExp(this.deduplicationTagPattern);
     this.bridge = new Bridge(Object.assign({}, config.bridge, {
       controller: {
         onUserQuery: function(queriedUser) {
@@ -141,10 +144,16 @@ class Base {
         info("this message was sent by me, but did it come from a matrix client or a 3rd party client?");
         info("if it came from a 3rd party client, we want to repeat it as a 'notice' message type");
         info("if it came from a matrix client, then it's already in the client, sending again would dupe");
-        return Promise.mapSeries([
-          () => this.puppet.getClient().joinRoom(entry.matrix.roomId),
-          () => this.puppet.getClient().sendNotice(entry.matrix.roomId, text)
-        ], p => p());
+        info("we use a tag on the end of messages to determine if it came from matrix");
+        if (this.isTaggedMatrixMessage(text)) {
+          info('it is from matrix, so just ignore it.');
+        } else {
+          info('it is from 3rd party client, so repeat it as a notice');
+          return Promise.mapSeries([
+            () => this.puppet.getClient().joinRoom(entry.matrix.roomId),
+            () => this.puppet.getClient().sendNotice(entry.matrix.roomId, text)
+          ], p => p());
+        }
       } else {
         info("this message was not sent by me, send it the matrix room via ghost user as text");
         const ghostIntent = this.getIntentFromThirdPartySenderId(senderId);
@@ -182,7 +191,7 @@ class Base {
         error(err.message);
       }).then(thirdPartyRoomId => {
         info('got 3rd party room id', thirdPartyRoomId);
-        return this.sendMessageAsPuppetToThirdPartyRoomWithId(thirdPartyRoomId, body);
+        return this.sendMessageAsPuppetToThirdPartyRoomWithId(thirdPartyRoomId, this.tagMatrixMessage(body));
       }).catch(err => {
         error('failed to send message to third party room using the third party client');
         error(err.stack);
@@ -191,6 +200,18 @@ class Base {
   }
   sendMessageAsPuppetToThirdPartyRoomWithId(_thirdPartyRoomId, _messageText) {
     throw new Error('override me');
+  }
+  defaultDeduplicationTag() {
+    return " [m]";
+  }
+  defaultDeduplicationTagPattern() {
+    return " \\[m\\]";
+  }
+  tagMatrixMessage(text) {
+    return text+this.deduplicationTag;
+  }
+  isTaggedMatrixMessage(text) {
+    return this.deduplicationTagRegex.test(text);
   }
 }
 
