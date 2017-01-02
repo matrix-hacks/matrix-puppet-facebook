@@ -1,7 +1,19 @@
-const Base = require('./base');
-const GroupMeClient = require('groupme-push-client');
+const path = require('path');
 
-class App extends Base {
+const config = require('./config.json');
+const {
+  MatrixAppServiceBridge: {
+    Cli, AppServiceRegistration
+  },
+  Puppet,
+  MatrixPuppetBridgeBase
+} = require("matrix-puppet-bridge");
+
+const puppet = new Puppet(path.join(__dirname, './config.json' ));
+
+const GroupMeClient = require('./client');
+
+class App extends MatrixPuppetBridgeBase {
   initThirdPartyClient() {
     this.thirdPartyClient = new GroupMeClient(this.config.groupme.accessToken);
     return this.thirdPartyClient.connect().then(() => {
@@ -65,4 +77,33 @@ class App extends Base {
   }
 }
 
-module.exports = App;
+new Cli({
+  port: config.port,
+  registrationPath: config.registrationPath,
+  generateRegistration: function(reg, callback) {
+    puppet.associate().then(()=>{
+      reg.setId(AppServiceRegistration.generateToken());
+      reg.setHomeserverToken(AppServiceRegistration.generateToken());
+      reg.setAppServiceToken(AppServiceRegistration.generateToken());
+      reg.setSenderLocalpart("groupmebot");
+      reg.addRegexPattern("users", "@__mpb__groupme_.*", true);
+      callback(reg);
+    }).catch(err=>{
+      console.error(err.message);
+      process.exit(-1);
+    });
+  },
+  run: function(port) {
+    const app = new App(config, puppet);
+    return puppet.startClient().then(()=>{
+      return app.initThirdPartyClient();
+    }).then(() => {
+      return app.bridge.run(port, config);
+    }).then(()=>{
+      console.log('Matrix-side listening on port %s', port);
+    }).catch(err=>{
+      console.error(err.message);
+      process.exit(-1);
+    });
+  }
+}).run();
