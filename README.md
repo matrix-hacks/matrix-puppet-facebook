@@ -22,11 +22,11 @@ Copy `config.sample.json` to `config.json` and update it to match your setup
 
 ## register the app service
 
-Generate an `groupme-registration.yaml` file with `node index.js -r -u "https://your.matrix.homeserver"`
+Generate an `groupme-registration.yaml` file with `node index.js -r -u "http://your-bridge-server:8090"`
 
 Note: The 'registration' setting in the config.json needs to set to the path of this file. By default, it already is.
 
-Copy this `groupme-registration.yaml` file to your home server, then edit it, setting its url to point to your bridge server. e.g. `url: 'http://your-bridge-server.example.org:8090'`
+Copy this `groupme-registration.yaml` file to your home server. Make sure that from the perspective of the homeserver, the url is correctly pointing to your bridge server. e.g. `url: 'http://your-bridge-server.example.org:8090'` and is reachable.
 
 Edit your homeserver.yaml file and update the `app_service_config_files` with the path to the `groupme-registration.yaml` file.
 
