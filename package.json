@@ -2,7 +2,7 @@
   "name": "matrix-appservice-groupme",
   "version": "1.0.0",
   "description": "facilitates writing a certain kind of matrix bridge",
-  "main": "src/exports.js",
+  "main": "index.js",
   "scripts": {
     "start": "DEBUG=matrix-puppet:* node index.js",
     "test": "echo \"no tests at this time\"; exit 1"
