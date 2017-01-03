@@ -13,13 +13,16 @@ class Client extends EventEmitter {
     return login(this.auth).then((api)=> {
       this.api = api;
       api.setOptions({
-        listenEvents: true
+        listenEvents: true,
+        selfListen: true
       });
       this.userId = api.getCurrentUserID();
       debug('current user id', this.userId);
       api.listen((err, data) => {
-        debug('error', err.stack);
-        if ( err ) throw err;
+        if ( err ) {
+          debug('error', err.stack);
+          throw err;
+        }
         debug(data);
         if ( data.type === 'typ' ) {
           if (data.isTyping === true) {
@@ -35,15 +38,24 @@ class Client extends EventEmitter {
     });
   }
   getUserInfoById(userId) {
-    return Promise.promisify(this.api.getUserInfo)([userId]).then(res=>{
+    const getUserInfo = Promise.promisify(this.api.getUserInfo);
+    return getUserInfo([userId]).then(res=>{
       const userInfo = res[userId];
       debug('user info', userInfo);
       return userInfo;
     });
   }
   getThreadInfo(threadId) {
-    return Promise.promisify(this.api.getThreadInfo)(threadId).then(res=>{
+    const getThreadInfo = Promise.promisify(this.api.getThreadInfo);
+    return getThreadInfo(threadId).then(res=>{
       debug('thread info', res);
+      return res;
+    });
+  }
+  sendMessage(threadId, msg) {
+    const sendMessage = Promise.promisify(this.api.sendMessage);
+    sendMessage(msg, threadId).then(res=>{
+      debug('sent msg, info back', res);
       return res;
     });
   }
