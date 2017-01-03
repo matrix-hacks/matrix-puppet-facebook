@@ -1,12 +1,13 @@
 {
-  "groupme": {
-    "accessToken": "your-access-token"
+  "facebook": {
+    "email": "FB_EMAIL",
+    "password": "FB_PASSWORD"
   },
-  "registrationPath": "groupme-registration.yaml",
+  "registrationPath": "facebook-registration.yaml",
   "port": 8090,
   "bridge": {
     "homeserverUrl":"https://synapse.keyvan.pw",
     "domain": "synapse.keyvan.pw",
-    "registration": "groupme-registration.yaml"
+    "registration": "facebook-registration.yaml"
   }
 }

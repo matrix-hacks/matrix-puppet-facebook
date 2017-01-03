@@ -1,7 +1,7 @@
 {
-  "name": "matrix-appservice-groupme",
+  "name": "matrix-appservice-facebook",
   "version": "1.0.0",
-  "description": "facilitates writing a certain kind of matrix bridge",
+  "description": "matrix bridge for facebook",
   "main": "index.js",
   "scripts": {
     "start": "DEBUG=matrix-puppet:* node index.js",
@@ -9,20 +9,19 @@
   },
   "keywords": [
     "matrix",
-    "groupme"
+    "facebook"
   ],
   "author": "Keyvan Fatehi",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kfatehi/matrix-appservice-groupme.git"
+    "url": "https://github.com/kfatehi/matrix-appservice-facebook.git"
   },
   "dependencies": {
-    "axios": "^0.15.3",
     "bluebird": "^3.4.6",
     "debug": "^2.6.0",
-    "matrix-puppet-bridge": "^1.2.0",
-    "ws": "^1.1.1"
+    "facebook-chat-api": "^1.2.0",
+    "matrix-puppet-bridge": "^1.2.0"
   },
   "devDependencies": {
     "eslint": "^3.12.2"
