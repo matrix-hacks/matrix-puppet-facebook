@@ -54,7 +54,7 @@ class Client extends EventEmitter {
   }
   sendMessage(threadId, msg) {
     const sendMessage = Promise.promisify(this.api.sendMessage);
-    sendMessage(msg, threadId).then(res=>{
+    return sendMessage(msg, threadId).then(res=>{
       debug('sent msg, info back', res);
       return res;
     });
