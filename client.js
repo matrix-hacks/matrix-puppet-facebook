@@ -18,10 +18,17 @@ class Client extends EventEmitter {
       });
       this.userId = api.getCurrentUserID();
       debug('current user id', this.userId);
-      api.listen((err, data) => {
+      let stop = api.listen((err, data) => {
         if ( err ) {
           debug('error', err.stack);
-          throw err;
+          console.log('gonna re-login...');
+          // return this.login();
+          debug('stopping it');
+          stop();
+          debug('stopped');
+          debug('logging in again in 5 secs');
+          setTimeout(()=>this.login(), 5000);
+          return;
         }
         debug(data);
         if ( data.type === 'typ' ) {
