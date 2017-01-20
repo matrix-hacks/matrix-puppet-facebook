@@ -1,6 +1,6 @@
 # matrix-appservice-facebook
 
-This is a Matrix bridge for Facebook
+This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-bridge) for Facebook.
 
 ## installation
 
