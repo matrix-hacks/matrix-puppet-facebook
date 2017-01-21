@@ -1,4 +1,4 @@
-# matrix-appservice-facebook
+# matrix-puppet-facebook
 
 This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-bridge) for Facebook.
 

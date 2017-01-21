@@ -1,5 +1,5 @@
 {
-  "name": "matrix-appservice-facebook",
+  "name": "matrix-puppet-facebook",
   "version": "1.0.0",
   "description": "matrix bridge for facebook",
   "main": "index.js",
@@ -15,7 +15,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kfatehi/matrix-appservice-facebook.git"
+    "url": "https://github.com/kfatehi/matrix-puppet-facebook.git"
   },
   "dependencies": {
     "bluebird": "^3.4.6",
