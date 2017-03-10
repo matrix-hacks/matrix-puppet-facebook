@@ -21,7 +21,7 @@ class App extends MatrixPuppetBridgeBase {
     this.thirdPartyClient.on('message', (data)=>{
       const { senderID, body, threadID, isGroup } = data;
       const isMe = senderID === this.thirdPartyClient.userId;
-      console.log("ISME?", isMe);
+      debug("ISME? " + isMe);
       this.threadInfo[threadID] = { isGroup };
       const payload = {
         roomId: threadID,
