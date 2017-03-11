@@ -19,17 +19,46 @@ class App extends MatrixPuppetBridgeBase {
     this.threadInfo = {};
     this.thirdPartyClient = new FacebookClient(this.config.facebook);
     this.thirdPartyClient.on('message', (data)=>{
-      const { senderID, body, threadID, isGroup } = data;
+      const { senderID, body, threadID, isGroup, attachments } = data;
+      debug(attachments);
       const isMe = senderID === this.thirdPartyClient.userId;
       debug("ISME? " + isMe);
       this.threadInfo[threadID] = { isGroup };
-      const payload = {
-        roomId: threadID,
-        // senderName: senderID,
-        senderId: isMe ? undefined : senderID,
-        text: body
-      };
-      debug(payload);
+
+      var payload;
+      if (body !== undefined) {
+        debug('Message has body');
+        payload = {
+          roomId: threadID,
+          // senderName: senderID,
+          senderId: isMe ? undefined : senderID,
+          text: body
+        };
+        debug(payload);
+      } else if (attachments.length >= 0) {
+        debug('Message has an attachment');
+        let attachment = attachments[0];
+        if (attachment.type === 'sticker') {
+          debug('Attachment is a sticker');
+          payload = {
+            roomId: threadID,
+            senderId: isMe? undefined : senderID,
+            text: attachment.url
+          };
+        } else if (attachment.type === 'animated_image') {
+          debug('Attachment is an animated image');
+          payload = {
+            roomId: threadID,
+            senderId: isMe? undefined : senderID,
+            text: attachment.thumbnailUrl
+          };
+        } else {
+          debug('Unknown attachment type %s', attachment.type);
+        }
+      } else {
+        debug('Unknown message');
+      }
+
       return this.handleThirdPartyRoomMessage(payload);
     });
     return this.thirdPartyClient.login();
