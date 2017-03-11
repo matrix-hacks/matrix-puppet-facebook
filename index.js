@@ -52,6 +52,13 @@ class App extends MatrixPuppetBridgeBase {
             senderId: isMe? undefined : senderID,
             text: attachment.thumbnailUrl
           };
+        } else if (attachment.type === 'file') {
+          debug('Attachment is a file');
+          payload = {
+            roomId: threadID,
+            senderId: isMe? undefined : senderID,
+            text: attachment.name + ': ' + attachment.url
+          };
         } else {
           debug('Unknown attachment type %s', attachment.type);
         }
