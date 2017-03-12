@@ -20,7 +20,6 @@ class App extends MatrixPuppetBridgeBase {
     this.thirdPartyClient = new FacebookClient(this.config.facebook);
     this.thirdPartyClient.on('message', (data)=>{
       const { senderID, body, threadID, isGroup, attachments } = data;
-      debug(attachments);
       const isMe = senderID === this.thirdPartyClient.userId;
       debug("ISME? " + isMe);
       this.threadInfo[threadID] = { isGroup };
