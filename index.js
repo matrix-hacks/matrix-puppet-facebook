@@ -35,6 +35,7 @@ class App extends MatrixPuppetBridgeBase {
           text: body
         };
         debug(payload);
+        return this.handleThirdPartyRoomMessage(payload);
       } else if (attachments.length >= 0) {
         debug('Message has an attachment');
         let attachment = attachments[0];
@@ -43,15 +44,23 @@ class App extends MatrixPuppetBridgeBase {
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: attachment.url
+            text: "sticker",
+            url: attachment.url,
+            h: attachment.heigh,
+            w: attachment.width
           };
+          return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'animated_image') {
           debug('Attachment is an animated image');
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: attachment.thumbnailUrl
+            text: attachment.name, 
+            url: attachment.previewUrl,
+            h: attachment.previewWidth,
+            w: attachment.previewHeight
           };
+          return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'file') {
           debug('Attachment is a file');
           payload = {
@@ -59,14 +68,13 @@ class App extends MatrixPuppetBridgeBase {
             senderId: isMe? undefined : senderID,
             text: attachment.name + ': ' + attachment.url
           };
+          return this.handleThirdPartyRoomMessage(payload);
         } else {
           debug('Unknown attachment type %s', attachment.type);
         }
       } else {
         debug('Unknown message');
       }
-
-      return this.handleThirdPartyRoomMessage(payload);
     });
     return this.thirdPartyClient.login();
   }
