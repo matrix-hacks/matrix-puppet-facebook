@@ -61,6 +61,17 @@ class App extends MatrixPuppetBridgeBase {
             w: attachment.previewHeight
           };
           return this.handleThirdPartyRoomImageMessage(payload);
+        } else if (attachment.type === 'photo') {
+          debug('Attachment is a photo');
+          payload = {
+            roomId: threadID,
+            senderId: isMe? undefined : senderID,
+            text: attachment.filename,
+            url: attachment.largePreviewUrl,
+            h: attachment.largePreviewHeight,
+            w: attachment.largePreviewWidth
+          };
+          return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'file') {
           debug('Attachment is a file');
           payload = {
