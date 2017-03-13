@@ -46,7 +46,8 @@ class App extends MatrixPuppetBridgeBase {
             text: "sticker",
             url: attachment.url,
             h: attachment.heigh,
-            w: attachment.width
+            w: attachment.width,
+            mimetype: 'image/png'
           };
           return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'animated_image') {
@@ -57,7 +58,8 @@ class App extends MatrixPuppetBridgeBase {
             text: attachment.name, 
             url: attachment.previewUrl,
             h: attachment.previewWidth,
-            w: attachment.previewHeight
+            w: attachment.previewHeight,
+            mimetype: 'image/gif'
           };
           return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'photo') {
