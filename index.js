@@ -45,7 +45,7 @@ class App extends MatrixPuppetBridgeBase {
             senderId: isMe? undefined : senderID,
             text: "sticker",
             url: attachment.url,
-            h: attachment.heigh,
+            h: attachment.height,
             w: attachment.width,
             mimetype: 'image/png'
           };
@@ -67,10 +67,10 @@ class App extends MatrixPuppetBridgeBase {
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: attachment.filename,
-            url: attachment.largePreviewUrl,
-            h: attachment.largePreviewHeight,
-            w: attachment.largePreviewWidth
+            text: attachment.name,
+            url: attachment.largePreviewUrl || attachment.previewUrl,
+            h: attachment.largePreviewHeight || attachment.previewHeight,
+            w: attachment.largePreviewWidth || attachment.previewWidth
           };
           return this.handleThirdPartyRoomImageMessage(payload);
         } else if (attachment.type === 'file') {
