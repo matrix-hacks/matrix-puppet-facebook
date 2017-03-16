@@ -1,6 +1,6 @@
 {
   "name": "matrix-puppet-facebook",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "matrix bridge for facebook",
   "main": "index.js",
   "scripts": {
