@@ -3,6 +3,9 @@ const login = Promise.promisify(require("facebook-chat-api"));
 const debug = require('debug')('matrix-puppet:facebook:client');
 const EventEmitter = require('events').EventEmitter;
 
+const readFile = Promise.promisify(require('fs').readFile);
+const writeFile = Promise.promisify(require('fs').writeFile);
+
 class Client extends EventEmitter {
   constructor(auth) {
     super();
@@ -10,8 +13,28 @@ class Client extends EventEmitter {
     this.auth = auth;
   }
   login() {
-    return login(this.auth).then((api)=> {
+    debug('Read the app state file');
+
+    return readFile('appstate.json', 'utf8')
+    .then((appState) => {
+      return login({appState: JSON.parse(appState)})
+      .catch((e) => {
+        debug('Error when connecting using the app state: %s', e);
+        debug('Trying with the plain auth');
+        return login(this.auth);
+      })
+    })
+    .catch((e) => {
+      debug('Error when fetching the app state: %s', e);
+      return login(this.auth);
+    })
+    .then((api) => {
+      debug('Writing the app state file');
+      return writeFile('appstate.json', JSON.stringify(api.getAppState())).then(() => api);
+    })
+    .then((api) => {
       this.api = api;
+
       api.setOptions({
         listenEvents: true,
         selfListen: true
@@ -27,7 +50,7 @@ class Client extends EventEmitter {
           stop();
           debug('stopped');
           debug('logging in again in 5 secs');
-          setTimeout(()=>this.login(), 5000);
+          setTimeout(() => this.login(), 5000);
           return;
         }
         debug(data);
