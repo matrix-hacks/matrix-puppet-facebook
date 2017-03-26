@@ -40,6 +40,17 @@ class Client extends EventEmitter {
         selfListen: true
       });
       this.userId = api.getCurrentUserID();
+
+      debug('Getting the friend list');
+      this.api.getFriendsList((err, friends) => {
+        if (err) {
+          debug('Error when getting the friend list');
+          debug(err.stack);
+        } else {
+          debug('Get %d friends', friends.length);
+          this.emit('friendsList', friends);
+        }
+      });
       debug('current user id', this.userId);
       let stop = api.listen((err, data) => {
         if ( err ) {

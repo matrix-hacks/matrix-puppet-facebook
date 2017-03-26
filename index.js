@@ -15,10 +15,16 @@ class App extends MatrixPuppetBridgeBase {
   getServicePrefix() {
     return "facebook";
   }
+
+  getServiceName () {
+    return "Facebook";
+  }
+
+
   initThirdPartyClient() {
     this.threadInfo = {};
     this.thirdPartyClient = new FacebookClient(this.config.facebook);
-    this.thirdPartyClient.on('message', (data)=>{
+    this.thirdPartyClient.on('message', (data) => {
       const { senderID, body, threadID, isGroup, attachments } = data;
       const isMe = senderID === this.thirdPartyClient.userId;
       debug("ISME? " + isMe);
@@ -88,8 +94,25 @@ class App extends MatrixPuppetBridgeBase {
         debug('Unknown message');
       }
     });
+
+    this.thirdPartyClient.on('friendsList', (friends) => {
+      let thirdPartyUsers = [];
+
+      for (const i in friends) {
+        const friend = friends[i];
+        thirdPartyUsers.push({
+          userId: friend.userID,
+          name: friend.fullName,
+          avatarUrl: friend.profilePicture
+        });
+      }
+
+      return this.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
+    });
+
     return this.thirdPartyClient.login();
   }
+
   getThirdPartyUserDataById(id) {
     return this.thirdPartyClient.getUserInfoById(id).then(userInfo=>{
       debug('got user data', userInfo);
