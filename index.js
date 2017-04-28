@@ -141,6 +141,10 @@ class App extends MatrixPuppetBridgeBase {
       url: data.url
     });
   }
+
+  sendReadReceiptAsPuppetToThirdPartyRoomWithId(id) {
+    return this.thirdPartyClient.markAsRead(id);
+  }
 }
 
 new Cli({

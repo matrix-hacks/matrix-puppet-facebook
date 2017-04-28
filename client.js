@@ -100,6 +100,19 @@ class Client extends EventEmitter {
       return res;
     });
   }
+  markAsRead(threadId) {
+    return new Promise((resolve, reject) => {
+      this.api.markAsRead(threadId, (err) => {
+        if (err) {
+          debug('fail when marked thread %s as read', threadId);
+          debug(err);
+        } else {
+          debug('thread %s marked as read', threadId);
+          resolve();
+        }
+      });
+    });
+  }
 }
 
 module.exports = Client;
