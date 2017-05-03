@@ -4,3 +4,4 @@ persist/
 *.db
 *.yaml
 config.json
+appstate.json
