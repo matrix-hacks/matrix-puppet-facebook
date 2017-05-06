@@ -87,6 +87,21 @@ class App extends MatrixPuppetBridgeBase {
             text: attachment.name + ': ' + attachment.url
           };
           return this.handleThirdPartyRoomMessage(payload);
+        } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
+          debug('Attachment is a facebook share');
+          var url;
+          if (attachment.facebookUrl.startsWith('https://')) {
+            url = attachment.facebookUrl;
+          } else {
+            url = 'https://www.facebook.com' + attachment.facebookUrl;
+          }
+
+          payload = {
+            roomId: threadID,
+            senderId: isMe? undefined : senderID,
+            text: attachment.title + ': ' + url
+          };
+          return this.handleThirdPartyRoomMessage(payload);
         } else {
           debug('Unknown attachment type %s', attachment.type);
         }
