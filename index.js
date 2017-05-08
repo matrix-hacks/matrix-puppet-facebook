@@ -157,6 +157,7 @@ new Cli({
       reg.setAppServiceToken(AppServiceRegistration.generateToken());
       reg.setSenderLocalpart("facebookbot");
       reg.addRegexPattern("users", "@facebook_.*", true);
+      reg.addRegexPattern("aliases", "#facebook_.*", true);
       callback(reg);
     }).catch(err=>{
       console.error(err.message);
