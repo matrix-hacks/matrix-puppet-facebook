@@ -11,6 +11,7 @@ class Client extends EventEmitter {
     super();
     this.api = null;
     this.auth = auth;
+    this.lastMsgId = null;
   }
   login() {
     debug('Read the app state file');
@@ -71,7 +72,8 @@ class Client extends EventEmitter {
           } else {
             this.emit('typing:stop', data.threadId, data.from);
           }
-        } else if ( data.type === 'message' ) {
+        } else if ( data.type === 'message' && data.messageID !== this.lastMsgId) {
+          this.lastMsgId = data.messageID;
           this.emit('message', data);
         }
       });
