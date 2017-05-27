@@ -172,7 +172,8 @@ new Cli({
       reg.setAppServiceToken(AppServiceRegistration.generateToken());
       reg.setSenderLocalpart("facebookbot");
       reg.addRegexPattern("users", "@facebook_.*", true);
-      reg.addRegexPattern("aliases", "#facebook_.*", true);
+      // Below commented until https://github.com/matrix-hacks/matrix-puppet-bridge/issues/17 is fixed
+      //reg.addRegexPattern("aliases", "#facebook_.*", true);
       callback(reg);
     }).catch(err=>{
       console.error(err.message);
