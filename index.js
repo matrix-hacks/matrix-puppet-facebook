@@ -90,7 +90,7 @@ class App extends MatrixPuppetBridgeBase {
         } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
           debug('Attachment is a facebook share');
           var url;
-          if (attachment.facebookUrl.startsWith('https://')) {
+          if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
             url = attachment.facebookUrl;
           } else {
             url = 'https://www.facebook.com' + attachment.facebookUrl;
