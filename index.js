@@ -1,166 +1,145 @@
-const {
-  MatrixAppServiceBridge: {
-    Cli, AppServiceRegistration
-  },
-  Puppet,
-  MatrixPuppetBridgeBase
-} = require("matrix-puppet-bridge");
+const { MatrixPuppetBridge } = require("matrix-puppet-bridge");
 const FacebookClient = require('./client');
 const config = require('./config.json');
 const path = require('path');
 const puppet = new Puppet(path.join(__dirname, './config.json' ));
 const debug = require('debug')('matrix-puppet:facebook');
 
-class App extends MatrixPuppetBridgeBase {
-  getServicePrefix() {
-    return "facebook";
-  }
+const threadInfo = {};
 
-  getServiceName () {
-    return "Facebook";
-  }
+const fb = new FacebookClient(config.facebook);
 
-
-  initThirdPartyClient() {
-    this.threadInfo = {};
-    this.thirdPartyClient = new FacebookClient(this.config.facebook);
-    this.thirdPartyClient.on('message', (data) => {
-      const { senderID, body, threadID, isGroup, attachments } = data;
-      const isMe = senderID === this.thirdPartyClient.userId;
-      debug("ISME? " + isMe);
-      this.threadInfo[threadID] = { isGroup };
-
-      var payload;
-      if (body !== undefined) {
-        debug('Message has body');
-        payload = {
-          roomId: threadID,
-          // senderName: senderID,
-          senderId: isMe ? undefined : senderID,
-          text: body
-        };
-        debug(payload);
-        return this.handleThirdPartyRoomMessage(payload);
-      } else if (attachments.length >= 0) {
-        debug('Message has an attachment');
-        let attachment = attachments[0];
-        if (attachment.type === 'sticker') {
-          debug('Attachment is a sticker');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: "sticker",
-            url: attachment.url,
-            h: attachment.height,
-            w: attachment.width,
-            mimetype: 'image/png'
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'animated_image') {
-          debug('Attachment is an animated image');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.name, 
-            url: attachment.previewUrl,
-            h: attachment.previewWidth,
-            w: attachment.previewHeight,
-            mimetype: 'image/gif'
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'photo') {
-          debug('Attachment is a photo');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.name,
-            url: attachment.largePreviewUrl || attachment.previewUrl,
-            h: attachment.largePreviewHeight || attachment.previewHeight,
-            w: attachment.largePreviewWidth || attachment.previewWidth
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'file') {
-          debug('Attachment is a file');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.name + ': ' + attachment.url
-          };
-          return this.handleThirdPartyRoomMessage(payload);
-        } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
-          debug('Attachment is a facebook share');
-          var url;
-          if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
-            url = attachment.facebookUrl;
-          } else {
-            url = 'https://www.facebook.com' + attachment.facebookUrl;
-          }
-
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.title + ': ' + url
-          };
-          return this.handleThirdPartyRoomMessage(payload);
-        } else {
-          debug('Unknown attachment type %s', attachment.type);
-        }
-      } else {
-        debug('Unknown message');
-      }
-    });
-
-    this.thirdPartyClient.on('friendsList', (friends) => {
-      let thirdPartyUsers = [];
-
-      for (const i in friends) {
-        const friend = friends[i];
-        thirdPartyUsers.push({
-          userId: friend.userID,
-          name: friend.fullName,
-          avatarUrl: friend.profilePicture
-        });
-      }
-
-      return this.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
-    });
-
-    return this.thirdPartyClient.login();
-  }
-
-  getThirdPartyUserDataById(id) {
-    return this.thirdPartyClient.getUserInfoById(id).then(userInfo=>{
+const app = new MatrixPuppetBridge({
+  getServicePrefix: () => 'facebook',
+  getServiceName: () => 'Facebook',
+  getUserInfo: id => {
+    return fb.getUserInfoById(id).then(userInfo=>{
       debug('got user data', userInfo);
       // TODO use userInfo.thumbSrc as the avatar
       return { senderName: userInfo.name };
     });
-  }
-  getThirdPartyRoomDataById(threadId) {
-    debug('getting third party room data by thread id', threadId);
-    let label = this.threadInfo[threadId].isGroup ? "Group" : "Friend";
-    return this.thirdPartyClient.getThreadInfo(threadId).then(data=>{
-      let roomData = {
-        name: data.name,
-        topic: `Facebook ${label}`
-      };
-      debug('room data', roomData);
-      return roomData;
+  },
+  getRoomInfo: id => {
+    let label = threadInfo[id].isGroup ? "Group" : "Friend";
+    // https://github.com/Schmavery/facebook-chat-api/blob/master/DOCS.md#getThreadInfo
+    // maybe we can get rid of our own threadInfo.isgroup
+    return fb.getThreadInfo(id).then((data)=>{
+      debug('thread info', id, data); // is knowledge of if it's a group here?
+      return { name, topic: `Facebook ${label}` }
     });
+  },
+  sendMessage: (id, text) => {
+    return fb.sendMessage(id, text);
+  },
+  sendImageMessage: (id, {text, url}) => {
+    return fb.sendMessage(id, { body: text, url });
+  },
+  sendReadReceipt: (id) => {
+    return fb.markAsRead(id);
   }
-  sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
-    return this.thirdPartyClient.sendMessage(id, text);
+});
+
+fb.on('message', (data) => {
+  const { senderID, body, threadID, isGroup, attachments } = data;
+  const isMe = senderID === fb.userId;
+  threadInfo[threadID] = { isGroup };
+
+  var payload;
+  if (body !== undefined) {
+    debug('Message has body');
+    payload = {
+      roomId: threadID,
+      // senderName: senderID,
+      senderId: isMe ? undefined : senderID,
+      text: body
+    };
+    debug(payload);
+    return app.handleThirdPartyRoomMessage(payload);
+  } else if (attachments.length >= 0) {
+    debug('Message has an attachment');
+    let attachment = attachments[0];
+    if (attachment.type === 'sticker') {
+      debug('Attachment is a sticker');
+      payload = {
+        roomId: threadID,
+        senderId: isMe? undefined : senderID,
+        text: "sticker",
+        url: attachment.url,
+        h: attachment.height,
+        w: attachment.width,
+        mimetype: 'image/png'
+      };
+      return app.handleThirdPartyRoomImageMessage(payload);
+    } else if (attachment.type === 'animated_image') {
+      debug('Attachment is an animated image');
+      payload = {
+        roomId: threadID,
+        senderId: isMe? undefined : senderID,
+        text: attachment.name, 
+        url: attachment.previewUrl,
+        h: attachment.previewWidth,
+        w: attachment.previewHeight,
+        mimetype: 'image/gif'
+      };
+      return app.handleThirdPartyRoomImageMessage(payload);
+    } else if (attachment.type === 'photo') {
+      debug('Attachment is a photo');
+      payload = {
+        roomId: threadID,
+        senderId: isMe? undefined : senderID,
+        text: attachment.name,
+        url: attachment.largePreviewUrl || attachment.previewUrl,
+        h: attachment.largePreviewHeight || attachment.previewHeight,
+        w: attachment.largePreviewWidth || attachment.previewWidth
+      };
+      return app.handleThirdPartyRoomImageMessage(payload);
+    } else if (attachment.type === 'file') {
+      debug('Attachment is a file');
+      payload = {
+        roomId: threadID,
+        senderId: isMe? undefined : senderID,
+        text: attachment.name + ': ' + attachment.url
+      };
+      return app.handleThirdPartyRoomMessage(payload);
+    } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
+      debug('Attachment is a facebook share');
+      var url;
+      if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
+        url = attachment.facebookUrl;
+      } else {
+        url = 'https://www.facebook.com' + attachment.facebookUrl;
+      }
+
+      payload = {
+        roomId: threadID,
+        senderId: isMe? undefined : senderID,
+        text: attachment.title + ': ' + url
+      };
+      return this.handleThirdPartyRoomMessage(payload);
+    } else {
+      debug('Unknown attachment type %s', attachment.type);
+      app.sendStatusMsg({}, 'Unknown attachment type', attachment.type);
+    }
+  } else {
+    debug('Unknown message');
+    app.sendStatusMsg({}, 'Unknown message');
   }
-  sendImageMessageAsPuppetToThirdPartyRoomWithId(id, data) {
-    return this.thirdPartyClient.sendMessage(id, {
-      body: data.text,
-      url: data.url
+})
+
+fb.on('friendsList', (friends) => {
+  let thirdPartyUsers = [];
+
+  for (const i in friends) {
+    const friend = friends[i];
+    thirdPartyUsers.push({
+      userId: friend.userID,
+      name: friend.fullName,
+      avatarUrl: friend.profilePicture
     });
   }
 
-  sendReadReceiptAsPuppetToThirdPartyRoomWithId(id) {
-    return this.thirdPartyClient.markAsRead(id);
-  }
-}
+  return app.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
+});
 
 new Cli({
   port: config.port,
@@ -182,7 +161,7 @@ new Cli({
   run: function(port) {
     const app = new App(config, puppet);
     return puppet.startClient().then(()=>{
-      return app.initThirdPartyClient();
+      return fb.login();
     }).then(() => {
       return app.bridge.run(port, config);
     }).then(()=>{

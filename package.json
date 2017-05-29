@@ -18,9 +18,7 @@
     "url": "https://github.com/kfatehi/matrix-puppet-facebook.git"
   },
   "dependencies": {
-    "bluebird": "^3.4.6",
-    "debug": "^2.6.0",
-    "facebook-chat-api": "1.2.0",
+    "facebook-chat-api": "1.4.0",
     "matrix-puppet-bridge": "^1.15.1"
   },
   "devDependencies": {
