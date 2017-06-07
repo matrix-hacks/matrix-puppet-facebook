@@ -1,9 +1,11 @@
 {
   "name": "matrix-puppet-facebook",
-  "version": "1.4.2",
+  "version": "2.0.0",
   "description": "matrix bridge for facebook",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
+    "prepare": "tsc",
     "start": "DEBUG=matrix-puppet:* node index.js",
     "test": "echo \"no tests at this time\"; exit 1"
   },
@@ -11,48 +13,19 @@
     "matrix",
     "facebook"
   ],
-  "author": "Keyvan Fatehi",
+  "author": [
+    "Alexandre Morignot",
+    "Keyvan Fatehi"
+  ],
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kfatehi/matrix-puppet-facebook.git"
+    "url": "https://github.com/matrix-hacks/matrix-puppet-facebook.git"
   },
   "dependencies": {
+    "@types/node": "^7.0.28",
     "facebook-chat-api": "1.4.0",
-    "matrix-puppet-bridge": "^1.15.1"
-  },
-  "devDependencies": {
-    "eslint": "^3.12.2"
-  },
-  "eslintConfig": {
-    "env": {
-      "es6": true,
-      "node": true
-    },
-    "extends": "eslint:recommended",
-    "rules": {
-      "no-console": 0,
-      "indent": [
-        "error",
-        2,
-        {
-          "SwitchCase": 1
-        }
-      ],
-      "linebreak-style": [
-        "error",
-        "unix"
-      ],
-      "semi": [
-        "error",
-        "always"
-      ],
-      "no-unused-vars": [
-        "error",
-        {
-          "argsIgnorePattern": "^_"
-        }
-      ]
-    }
+    "matrix-puppet-bridge": "^2.0.0",
+    "typescript": "^2.3.4"
   }
 }

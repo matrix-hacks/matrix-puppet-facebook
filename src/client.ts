@@ -1,22 +1,29 @@
 const Promise = require('bluebird');
 const login = Promise.promisify(require("facebook-chat-api"));
 const debug = require('debug')('matrix-puppet:facebook:client');
-const EventEmitter = require('events').EventEmitter;
+export const EventEmitter = require('events').EventEmitter;
 
 const readFile = Promise.promisify(require('fs').readFile);
 const writeFile = Promise.promisify(require('fs').writeFile);
 
-class Client extends EventEmitter {
-  constructor(auth) {
-    super();
+export interface AuthParams {
+  email: string;
+  password: string;
+}
+
+export class Client extends EventEmitter {
+  configure(auth : AuthParams, identityPairId: string) {
+    this.appstateFile = `appstate_${identityPairId}.json`;
     this.api = null;
     this.auth = auth;
     this.lastMsgId = null;
+    this.userId = null;
   }
+
   login() {
     debug('Read the app state file');
 
-    return readFile('appstate.json', 'utf8')
+    return readFile(this.appstateFile, 'utf8')
     .then((appState) => {
       return login({appState: JSON.parse(appState)})
       .catch((e) => {
@@ -31,7 +38,7 @@ class Client extends EventEmitter {
     })
     .then((api) => {
       debug('Writing the app state file');
-      return writeFile('appstate.json', JSON.stringify(api.getAppState())).then(() => api);
+      return writeFile(this.appstateFile, JSON.stringify(api.getAppState())).then(() => api);
     })
     .then((api) => {
       this.api = api;
@@ -116,5 +123,3 @@ class Client extends EventEmitter {
     });
   }
 }
-
-module.exports = Client;

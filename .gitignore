@@ -5,3 +5,4 @@ persist/
 *.yaml
 config.json
 appstate.json
+dist/

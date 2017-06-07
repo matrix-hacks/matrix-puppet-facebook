@@ -1,13 +1,32 @@
 {
-  "facebook": {
-    "email": "FB_EMAIL",
-    "password": "FB_PASSWORD"
-  },
-  "registrationPath": "facebook-registration.yaml",
+  "servicePrefix": "facebook",
+  "serviceName": "Facebook",
+  "serviceIconPath": "icon.gif",
   "port": 8090,
-  "bridge": {
-    "homeserverUrl":"https://synapse.keyvan.pw",
-    "domain": "synapse.keyvan.pw",
-    "registration": "facebook-registration.yaml"
-  }
+  "homeserverDomain": "dev.synapse.mdks.org",
+  "homeserverUrl":"https://dev.synapse.mdks.org",
+  "registrationPath": "registration.yaml",
+  "statusRoomPostfix": "puppetStatusRoom",
+  "identityPairs": [
+    {
+      "id": "a",
+      "matrixPuppet": {
+        "localpart": ""
+      },
+      "thirdParty": {
+        "email": "",
+        "password": ""
+      }
+    },
+    {
+      "id": "b",
+      "matrixPuppet": {
+        "localpart": ""
+      },
+      "thirdParty": {
+        "email": "",
+        "password": ""
+      }
+    }
+  ]
 }
