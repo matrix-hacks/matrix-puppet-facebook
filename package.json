@@ -1,6 +1,6 @@
 {
   "name": "matrix-puppet-facebook",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "matrix bridge for facebook",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "bluebird": "^3.4.6",
     "debug": "^2.6.0",
     "facebook-chat-api": "^1.5.1",
-    "matrix-puppet-bridge": "^1.15.1"
+    "matrix-puppet-bridge": "^1.15.4"
   },
   "devDependencies": {
     "eslint": "^3.12.2"
