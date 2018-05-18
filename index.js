@@ -140,7 +140,7 @@ class App extends MatrixPuppetBridgeBase {
     let label = this.threadInfo[threadId].isGroup ? "Group" : "Friend";
     return this.thirdPartyClient.getThreadInfo(threadId).then(data=>{
       let roomData = {
-        name: data.name,
+        name: data.name ? data.name : '',
         topic: `Facebook ${label}`
       };
       debug('room data', roomData);
