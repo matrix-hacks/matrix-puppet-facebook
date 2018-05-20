@@ -20,7 +20,6 @@ class App extends MatrixPuppetBridgeBase {
     return "Facebook";
   }
 
-
   initThirdPartyClient() {
     this.threadInfo = {};
     this.thirdPartyClient = new FacebookClient(this.config.facebook);
@@ -31,7 +30,7 @@ class App extends MatrixPuppetBridgeBase {
       this.threadInfo[threadID] = { isGroup };
 
       var payload;
-      if (body !== undefined) {
+      if (body) {
         debug('Message has body');
         payload = {
           roomId: threadID,
@@ -49,10 +48,10 @@ class App extends MatrixPuppetBridgeBase {
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: "sticker",
+            text: attachment.description,
             url: attachment.url,
-            h: attachment.height,
-            w: attachment.width,
+            h: 120,
+            w: 120,
             mimetype: 'image/png'
           };
           return this.handleThirdPartyRoomImageMessage(payload);
@@ -61,7 +60,7 @@ class App extends MatrixPuppetBridgeBase {
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: attachment.name, 
+            text: attachment.filename,
             url: attachment.previewUrl,
             h: attachment.previewWidth,
             w: attachment.previewHeight,
@@ -73,7 +72,7 @@ class App extends MatrixPuppetBridgeBase {
           payload = {
             roomId: threadID,
             senderId: isMe? undefined : senderID,
-            text: attachment.name,
+            text: attachment.filename,
             url: attachment.largePreviewUrl || attachment.previewUrl,
             h: attachment.largePreviewHeight || attachment.previewHeight,
             w: attachment.largePreviewWidth || attachment.previewWidth

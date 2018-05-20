@@ -46,7 +46,7 @@ class Client extends EventEmitter {
       this.api.getFriendsList((err, friends) => {
         if (err) {
           debug('Error when getting the friend list');
-          debug(err.stack);
+          debug(err);
         } else {
           debug('Get %d friends', friends.length);
           this.emit('friendsList', friends);
@@ -55,7 +55,7 @@ class Client extends EventEmitter {
       debug('current user id', this.userId);
       let stop = api.listen((err, data) => {
         if ( err ) {
-          debug('error', err.stack);
+          debug('error', err);
           console.log('gonna re-login...');
           // return this.login();
           debug('stopping it');
