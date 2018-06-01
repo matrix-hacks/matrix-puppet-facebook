@@ -22,7 +22,7 @@ class App extends MatrixPuppetBridgeBase {
 
   initThirdPartyClient() {
     this.threadInfo = {};
-    this.thirdPartyClient = new FacebookClient(this.config.facebook);
+    this.thirdPartyClient = new FacebookClient();
     this.thirdPartyClient.on('message', (data) => {
       const { senderID, body, threadID, isGroup, attachments } = data;
       const isMe = senderID === this.thirdPartyClient.userId;

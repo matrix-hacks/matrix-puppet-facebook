@@ -7,10 +7,9 @@ const readFile = Promise.promisify(require('fs').readFile);
 const writeFile = Promise.promisify(require('fs').writeFile);
 
 class Client extends EventEmitter {
-  constructor(auth) {
+  constructor() {
     super();
     this.api = null;
-    this.auth = auth;
     this.lastMsgId = null;
   }
   login() {
@@ -20,18 +19,15 @@ class Client extends EventEmitter {
     .then((appState) => {
       return login({appState: JSON.parse(appState)})
       .catch((e) => {
-        debug('Error when connecting using the app state: %s', e);
-        debug('Trying with the plain auth');
-        return login(this.auth);
+        console.error('Error when connecting using appstate.json: %s', e);
+        console.error('Please confirm that your appstate.json was saved correctly. Consider re-running \'node login.js\'.');
+        process.exit();
       })
     })
     .catch((e) => {
-      debug('Error when fetching the app state: %s', e);
-      return login(this.auth);
-    })
-    .then((api) => {
-      debug('Writing the app state file');
-      return writeFile('appstate.json', JSON.stringify(api.getAppState())).then(() => api);
+      console.error('Error when reading the appstate.json file: %s', e);
+      console.error('Please confirm that your appstate.json was saved correctly. Consider re-running \'node login.js\'.');
+      process.exit();
     })
     .then((api) => {
       this.api = api;

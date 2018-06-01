@@ -14,6 +14,8 @@ run `npm install`
 
 Copy `config.sample.json` to `config.json` and update it to match your setup
 
+Run `node login.js`. This prompts you for your Facebook username/password, logs in, and creates an appstate.json containing your login token. It will also prompt you about login approvals (i.e. 2FA) if you have them enabled on your Facebook account. Note this script may output some errors, but as long as appstate.json is written and works properly once you run the bridge, you can ignore them.
+
 ## register the app service
 
 Generate an `facebook-registration.yaml` file with `node index.js -r -u "http://your-bridge-server:8090"`

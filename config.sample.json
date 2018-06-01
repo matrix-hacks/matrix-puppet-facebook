@@ -1,8 +1,4 @@
 {
-  "facebook": {
-    "email": "FB_EMAIL",
-    "password": "FB_PASSWORD"
-  },
   "registrationPath": "facebook-registration.yaml",
   "port": 8090,
   "bridge": {
