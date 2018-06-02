@@ -39,71 +39,91 @@ class App extends MatrixPuppetBridgeBase {
           text: body
         };
         debug(payload);
-        return this.handleThirdPartyRoomMessage(payload);
-      } else if (attachments.length >= 0) {
-        debug('Message has an attachment');
-        let attachment = attachments[0];
-        if (attachment.type === 'sticker') {
-          debug('Attachment is a sticker');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.description,
-            url: attachment.url,
-            h: 120,
-            w: 120,
-            mimetype: 'image/png'
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'animated_image') {
-          debug('Attachment is an animated image');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.filename,
-            url: attachment.previewUrl,
-            h: attachment.previewWidth,
-            w: attachment.previewHeight,
-            mimetype: 'image/gif'
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'photo') {
-          debug('Attachment is a photo');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.filename,
-            url: attachment.largePreviewUrl || attachment.previewUrl,
-            h: attachment.largePreviewHeight || attachment.previewHeight,
-            w: attachment.largePreviewWidth || attachment.previewWidth
-          };
-          return this.handleThirdPartyRoomImageMessage(payload);
-        } else if (attachment.type === 'file') {
-          debug('Attachment is a file');
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.name + ': ' + attachment.url
-          };
-          return this.handleThirdPartyRoomMessage(payload);
-        } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
-          debug('Attachment is a facebook share');
-          var url;
-          if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
-            url = attachment.facebookUrl;
-          } else {
-            url = 'https://www.facebook.com' + attachment.facebookUrl;
-          }
+        // Don't return yet -- there may be attachments, too.
+        this.handleThirdPartyRoomMessage(payload);
+      }
 
-          payload = {
-            roomId: threadID,
-            senderId: isMe? undefined : senderID,
-            text: attachment.title + ': ' + url
-          };
-          return this.handleThirdPartyRoomMessage(payload);
-        } else {
-          debug('Unknown attachment type %s', attachment.type);
-        }
+      // We represent attachments as separate messages, as facebook does.
+      if (attachments.length >= 0) {
+        debug('Message has one or more attachments');
+        attachments.forEach(attachment => {
+          if (attachment.type === 'sticker') {
+            debug('Attachment is a sticker');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.description,
+              url: attachment.url,
+              h: 120,
+              w: 120,
+              mimetype: 'image/png'
+            };
+            this.handleThirdPartyRoomImageMessage(payload);
+          } else if (attachment.type === 'animated_image') {
+            debug('Attachment is an animated image');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.filename,
+              url: attachment.previewUrl,
+              h: attachment.previewWidth,
+              w: attachment.previewHeight,
+              mimetype: 'image/gif'
+            };
+            this.handleThirdPartyRoomImageMessage(payload);
+          } else if (attachment.type === 'photo') {
+            debug('Attachment is a photo');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.filename,
+              url: attachment.largePreviewUrl || attachment.previewUrl,
+              h: attachment.largePreviewHeight || attachment.previewHeight,
+              w: attachment.largePreviewWidth || attachment.previewWidth
+            };
+            this.handleThirdPartyRoomImageMessage(payload);
+          } else if (attachment.type === 'file') {
+            debug('Attachment is a file');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.name + ': ' + attachment.url
+            };
+            this.handleThirdPartyRoomMessage(payload);
+          } else if (attachment.type === 'share' && 'facebookUrl' in attachment) {
+            debug('Attachment is a facebook share');
+            var url;
+            if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
+              url = attachment.facebookUrl;
+            } else {
+              url = 'https://www.facebook.com' + attachment.facebookUrl;
+            }
+            let msgText = "";
+
+            if (attachment.title) {
+              msgText += attachment.title + ":\n";
+            }
+
+            if (attachment.description) {
+              msgText += attachment.description + "\n";
+            }
+
+            msgText += url;
+
+            if (attachment.source) {
+              msgText += "\n(" + attachment.source + ")";
+            }
+
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: msgText
+            };
+            this.handleThirdPartyRoomMessage(payload);
+          } else {
+            debug('Unknown attachment type %s', attachment.type);
+          }
+        });
       } else {
         debug('Unknown message');
       }
