@@ -11,7 +11,6 @@ class Client extends EventEmitter {
     super();
     this.api = null;
     this.lastMsgId = null;
-    this.restartTimer = null;
   }
   login() {
     debug('Read the app state file');
@@ -75,24 +74,14 @@ class Client extends EventEmitter {
         }
       });
 
-      if (this.restartTimer)
-      {
-        clearTimeout(this.restartTimer);
-        this.restartTimer = null;
-      }
+      // Restart every 8 hours, give or take an hour
+      var restartHours = 8 + Math.random();
+      var restartMs = Math.floor(restartHours*60*60*1000);
 
-      if (stop)
-      {
-        // Restart every 8 hours, give or take an hour
-        var restartHours = 8 + Math.random();
-        var restartMs = Math.floor(restartHours*60*60*1000);
-
-        this.restartTimer = setTimeout(() => {
-          console.log("Stopping and restarting to help prevent message send errors. ", restartHours.toFixed(2), "hours (", restartMs, " ms) have passed since the last auto-restart.");
-          stop();
-          this.login();
-        }, restartMs);
-      }
+      setTimeout(() => {
+        console.log("Dying and allowing supervisor process to restart me. ", restartHours.toFixed(2), "hours (", restartMs, " ms) have passed since starting.");
+        process.exit();
+      }, restartMs);
 
       return this;
     });

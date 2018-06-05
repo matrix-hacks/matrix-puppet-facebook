@@ -26,6 +26,8 @@ Copy this `facebook-registration.yaml` file to your home server. Make sure that 
 
 Edit your homeserver.yaml file and update the `app_service_config_files` with the path to the `facebook-registration.yaml` file.
 
-Launch the bridge with ```node index.js```.
+Launch the bridge with ```./start.sh``` (see \* below for more details on this). This is a bash script, so it only works on linux / osx. If you're on windows, you'll need to take a look at the script and make an equivalent batch file. It should be very simple.
 
 Restart your HS.
+
+\* Just to explain the reason for `start.sh`, facebook-chat-api contains a bug - https://github.com/Schmavery/facebook-chat-api/issues/555 that necessitates reconnecting to facebook periodically, otherwise message sending will start to fail after a couple of days. `start.sh` ensures that the process restarts properly any time it dies.
