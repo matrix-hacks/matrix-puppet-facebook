@@ -2,6 +2,18 @@
 
 This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-bridge) for Facebook.
 
+## quick start
+```
+git clone ...
+cd matrix-puppet-facebook
+npm install
+cp config.sample.json ./config.json
+node login.js
+node index.js -r -u "http://gyetpet.ko.tl:8090"
+cp facebook-registration.yaml /etc/matrix-synapse/
+nano homeserver.yaml
+```
+
 ## installation
 
 clone this repo
