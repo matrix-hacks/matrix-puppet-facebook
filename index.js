@@ -104,26 +104,40 @@ class App extends MatrixPuppetBridgeBase {
             } else {
               url = 'https://www.facebook.com' + attachment.facebookUrl;
             }
-            let msgText = "";
 
+            // Raw text message
+            let msgText = "";
             if (attachment.title) {
               msgText += attachment.title + ":\n";
             }
-
             if (attachment.description) {
               msgText += attachment.description + "\n";
             }
-
             msgText += url;
-
             if (attachment.source) {
               msgText += "\n(" + attachment.source + ")";
             }
 
+            // Formatted HTML message
+            let msgHtml = '<blockquote>';
+            if (attachment.title) {
+              msgHtml += `<strong><a href="${url}">${attachment.title}</a></strong><br/>`;
+            } else {
+              msgHtml += `<strong><a href="${url}">${url}</a></strong><br/>`;
+            }
+            if (attachment.description) {
+              msgHtml += `<em>${attachment.description}</em><br/>`;
+            }
+            if (attachment.source) {
+              msgHtml += `(${attachment.source})`;
+            }
+            msgHtml += '</blockquote>';
+
             payload = {
               roomId: threadID,
               senderId: isMe? undefined : senderID,
-              text: msgText
+              text: msgText,
+              html: msgHtml
             };
             this.handleThirdPartyRoomMessage(payload);
           } else {
