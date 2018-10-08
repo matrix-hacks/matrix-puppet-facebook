@@ -94,7 +94,13 @@ class App extends MatrixPuppetBridgeBase {
             debug('Attachment is a facebook share');
             var url;
             if (attachment.facebookUrl.startsWith('http://') || attachment.facebookUrl.startsWith('https://')) {
-              url = attachment.facebookUrl;
+              const urlObject = new URL(attachment.facebookUrl);
+              if (urlObject.hostname == "l.facebook.com" && urlObject.pathname == "/l.php") {
+                // Remove facebook link tracker
+                url = urlObject.searchParams.get("u");
+              } else {
+                url = attachment.facebookUrl;
+              }
             } else {
               url = 'https://www.facebook.com' + attachment.facebookUrl;
             }
