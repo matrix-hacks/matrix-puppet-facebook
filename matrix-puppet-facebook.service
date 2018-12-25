@@ -1,9 +1,11 @@
 [Unit]
 Description=matrix-puppet-facebook
+After=matrix-synapse.service
 
 [Service]
-ExecStart=/path/to/matrix-puppet-facebook/start.sh
+Type=simple
 WorkingDirectory=/path/to/matrix-puppet-facebook
+ExecStart=/path/to/matrix-puppet-facebook/start.sh
 
 Restart=always
 RestartSec=10
@@ -11,15 +13,12 @@ StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=matrix-puppet-facebook
 
-
-EnvironmentFile=-/etc/default/my-application
-
-
+EnvironmentFile=-/etc/default/matrix-puppet-facebook
+PermissionsStartOnly=true
 LimitNOFILE=4096
 IgnoreSIGPIPE=false
 KillMode=process
 User=matrix-synapse
-ExecStop=/path/to/matrix-puppet-facebook/stop.sh
 
 [Install]
 WantedBy=multi-user.target
