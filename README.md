@@ -2,6 +2,13 @@
 
 This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-bridge) for Facebook.
 
+## prerequisites
+
+node js required: 
+
+- install via package manager: [nodejs.org](https://nodejs.org/en/download/package-manager/)
+- or with [nvm (node version manager)](https://github.com/creationix/nvm#installation)
+
 
 ## installation
 
