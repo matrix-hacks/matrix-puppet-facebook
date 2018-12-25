@@ -91,6 +91,6 @@ Restart your homeserver:
 systemctl restart matrix-synapse.service
 ```
 
-## Notes
+## notes
 
 \* Just to explain the reason for `start.sh`, facebook-chat-api contains a bug - https://github.com/Schmavery/facebook-chat-api/issues/555 that necessitates reconnecting to facebook periodically, otherwise message sending will start to fail after a couple of days. `start.sh` ensures that the process restarts properly any time it dies.
