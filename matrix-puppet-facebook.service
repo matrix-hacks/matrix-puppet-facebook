@@ -17,7 +17,6 @@ EnvironmentFile=-/etc/default/matrix-puppet-facebook
 PermissionsStartOnly=true
 LimitNOFILE=4096
 IgnoreSIGPIPE=false
-KillMode=process
 User=matrix-synapse
 
 [Install]

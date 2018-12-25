@@ -4,12 +4,7 @@ This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-b
 
 ## prerequisites
 
-- node.js
-
-	- install via package manager: [nodejs.org: Installing Node.js via package manager
-](https://nodejs.org/en/download/package-manager/)
-	- install with [nvm (node version manager)](https://github.com/creationix/nvm#installation)
-
+- node.js: [nodejs.org: Installing Node.js via package manager](https://nodejs.org/en/download/package-manager/)
 - git
 
 ## installation
@@ -46,7 +41,9 @@ node index.js -r -u "http://your-bridge-server:8090"
 
 Note: The 'registration' setting in the config.json needs to set to the path of this file. By default, it already is.
 
-Copy this `facebook-registration.yaml` file to your home server. Make sure that from the perspective of the homeserver, the url is correctly pointing to your bridge server. e.g. `url: 'http://your-bridge-server.example.org:8090'` and is reachable:
+Make sure that from the perspective of the homeserver, the url is correctly pointing to your bridge server. e.g. `url: 'http://your-bridge-server.example.org:8090'` and is reachable. If you use reverse proxy, you can use "http://localhost:8090".
+
+Copy this `facebook-registration.yaml` file to your home server:
 
 ```
 cp facebook-registration.yaml /etc/matrix-synapse/
@@ -56,6 +53,12 @@ Edit your homeserver.yaml file and update the `app_service_config_files` with th
 
 ```
 nano /etc/matrix-synapse/homeserver.yaml
+```
+
+It should look like this: 
+
+```
+app_service_config_files: ["/etc/matrix-synapse/facebook-registration.yaml"]
 ```
 
 ## run the bridge
@@ -68,13 +71,15 @@ Restart your Homeserver.
 
 ## run as a service
 
-If you use systemd you can run the  bridge as a service, so it will start automatically on system boot.
-First edit the paths in the unit file:
+If you use systemd you can run the bridge as a service, so it will start automatically on system boot.
 
+First edit the paths in the unit file:
 
 ```
 nano matrix-puppet-facebook.service
 ```
+
+Make sure the matrix-synapse user has write permissions to this directory.
 
 After editing enable the service: 
 
