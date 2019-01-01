@@ -187,7 +187,15 @@ class App extends MatrixPuppetBridgeBase {
     });
   }
   sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
-    return this.thirdPartyClient.sendMessage(id, text);
+    const url = text.match(/(https?:\/\/[^\s]+)/g);
+    if (url) {
+      return this.thirdPartyClient.sendMessage(id, {
+        body: text,
+        url: url[0],
+      });
+    } else {
+      return this.thirdPartyClient.sendMessage(id, text);
+    }
   }
   sendImageMessageAsPuppetToThirdPartyRoomWithId(id, data) {
     return this.thirdPartyClient.sendMessage(id, {
