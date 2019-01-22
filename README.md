@@ -1,6 +1,6 @@
 # matrix-puppet-facebook
 
-This is a [puppetted Matrix bridge](https://github.com/AndrewJDR/matrix-puppet-bridge) for Facebook.
+This is a [puppetted Matrix bridge](https://github.com/matrix-hacks/matrix-puppet-bridge) for Facebook.
 
 ## prerequisites
 
