@@ -1,4 +1,4 @@
-# matrix-puppet-facebook
+# matrix-puppet-facebook [![#matrix-puppet-bridge:matrix.org](https://img.shields.io/matrix/matrix-puppet-bridge:matrix.org.svg?label=%23matrix-puppet-bridge%3Amatrix.org&logo=matrix&server_fqdn=matrix.org)](https://matrix.to/#/#matrix-puppet-bridge:matrix.org)
 
 This is a [puppetted Matrix bridge](https://github.com/matrix-hacks/matrix-puppet-bridge) for Facebook.
 
@@ -102,4 +102,4 @@ systemctl restart matrix-synapse.service
 
 ## Discussion, Help and Support
 
-Join us in [the Matrix Puppet Bridge room](https://riot.im/app/#/room/#matrix-puppet-bridge:matrix.org)
+Join us in the [![Matrix Puppet Bridge](https://user-images.githubusercontent.com/13843293/52007839-4b2f6580-24c7-11e9-9a6c-14d8fc0d0737.png)](https://matrix.to/#/#matrix-puppet-bridge:matrix.org) room
