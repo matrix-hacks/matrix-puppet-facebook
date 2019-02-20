@@ -96,6 +96,31 @@ Restart your homeserver:
 systemctl restart matrix-synapse.service
 ```
 
+## run in docker
+
+You can also use the bridge with docker. Proceed with steps normally but instead of running script or service, compile the docker image:
+
+```
+docker build -t matrix-puppet-facebook .
+```
+
+Of course you need working docker on your system.
+
+After that you can run the container:
+
+```
+docker run -d --restart=always -p 8090:8090 matrix-puppet-facebook
+```
+
+-d is --detach (runs in background), --restart is needed for restarting bridge container when it quits 
+(it does that every few hours), -p binds port 8090 in container to 8090 on host
+
+You can verify that containers works by running:
+
+```
+docker ps
+```
+
 ## notes
 
 \* Just to explain the reason for `start.sh`, facebook-chat-api contains a bug - https://github.com/Schmavery/facebook-chat-api/issues/555 that necessitates reconnecting to facebook periodically, otherwise message sending will start to fail after a couple of days. `start.sh` ensures that the process restarts properly any time it dies.
