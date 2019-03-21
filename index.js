@@ -181,6 +181,8 @@ class App extends MatrixPuppetBridgeBase {
       let roomData = {
         name: data.name ? data.name : '',
         topic: `Facebook ${label}`
+        // Add Matrix's is_direct to support Facebook's isGroup
+        is_direct: !data.isGroup,
       };
       debug('room data', roomData);
       return roomData;
