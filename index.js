@@ -180,7 +180,7 @@ class App extends MatrixPuppetBridgeBase {
     return this.thirdPartyClient.getThreadInfo(threadId).then(data=>{
       let roomData = {
         name: data.name ? data.name : '',
-        topic: `Facebook ${label}`
+        topic: `Facebook ${label}`,
         // Add Matrix's is_direct to support Facebook's isGroup
         is_direct: !data.isGroup,
       };
