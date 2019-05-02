@@ -134,6 +134,9 @@ docker ps
 
 \* Just to explain the reason for `start.sh`, facebook-chat-api contains a bug - https://github.com/Schmavery/facebook-chat-api/issues/555 that necessitates reconnecting to facebook periodically, otherwise message sending will start to fail after a couple of days. `start.sh` ensures that the process restarts properly any time it dies.
 
+### Error that can be ignored:
+ * `Unable to load crypto module: crypto will be disabled: Error: global.Olm is not defined` is not needed. `matrix-js-sdk` internally, it will always warn if OLM is present or not, and unfortunately we can't tell it to not burp out that warning.
+
 ## Discussion, Help and Support
 
 Join us in the [![Matrix Puppet Bridge](https://user-images.githubusercontent.com/13843293/52007839-4b2f6580-24c7-11e9-9a6c-14d8fc0d0737.png)](https://matrix.to/#/#matrix-puppet-bridge:matrix.org) room
