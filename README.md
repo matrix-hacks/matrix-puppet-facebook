@@ -2,6 +2,15 @@
 
 This is a [puppetted Matrix bridge](https://github.com/matrix-hacks/matrix-puppet-bridge) for Facebook.
 
+## Features and limitations
+* The bridge lets you use a personal matrix homeserver, the bridge itself, and your matrix client as a Facebook messenger (chat) client. What your matrix user says is said by your facebook user, and what other facebook users say is said by "ghost" users in Matrix that represent them.
+* Only chat is bridged, not groups, pages or events.
+To use the bridge, just wait until you receive a message from another facebook user, on facebook. The bridge, if it's properly configured, will create a room and a ghost user and that user acts as the other user, so you'll talk to them as if they were matrix users and they talk to your facebook user.
+* You can't initiate direct-messages.
+* History is not downloaded.
+* "Facebook Protocol" room it is created to show errors, and avalible facebook users.
+* Avatars for facebook users is download.
+
 ## prerequisites
 
 - node.js: [nodejs.org: Installing Node.js via package manager](https://nodejs.org/en/download/package-manager/)
