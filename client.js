@@ -94,11 +94,51 @@ class Client extends EventEmitter {
       return userInfo;
     });
   }
+  getThreadName(threadInfo) {
+    // Takes threadInfo as an argument and returns a Promise that resolves to
+    // an array with at least the other participant's name on the name
+    // attribute.
+    // The result of that promise is intended to match the result of the
+    // this.getUserInfoById promise so that it can just return that promise
+    // instead when valid
+    //
+    // I'm surprised and annoyed that Facebook doesn't do this themselves, but gotta work with what we got
+    //
+    // FIXME: What about the room image? Looks like createRoom doesn't support setting that on creation
+    // FIXME: This doesn't currently support room name *changes*, what can we do about that?
+    //        ref: https://github.com/matrix-hacks/matrix-puppet-facebook/issues/16
+
+    if (!threadInfo['name'] && !threadInfo['isGroup'] && threadInfo['participantIDs'].length == 2) {
+      // FIXME: Is there a better way to get the participant that isn't me other than looping through all (2) participants?
+      for (let memberID of threadInfo['participantIDs']) {
+        if (memberID != this.userId) {
+          // FIXME: Is it even worth using the nickname since per-room nicknames aren't properly supported yet anyway?
+          if (threadInfo['nicknames'][memberID]) {
+            debug("Setting room name to participant's nickname");
+            return Promise.resolve({name: threadInfo['nicknames'][memberID]});
+          } else {
+            debug("Setting room name to participant's real name");
+            return this.getUserInfoById(memberID);
+          }
+        }
+      }
+    } else {
+      // FIXME: If there's no name on the group chat it should be set to the name of *all* participants
+      debug('room name was already set or is a group chat, not changing');
+      return Promise.resolve({name: threadInfo['name']});
+    }
+  }
   getThreadInfo(threadId) {
     const getThreadInfo = Promise.promisify(this.api.getThreadInfo);
-    return getThreadInfo(threadId).then(res=>{
-      debug('thread info', res);
-      return res;
+    // I need threadInfo to be in this scope so that it can be called from inside both of the chained .than functions
+    var threadInfo
+    return getThreadInfo(threadId).then(res => {
+      threadInfo = res;
+      return this.getThreadName(threadInfo);
+    }).then(additionalThreadInfo => {
+      threadInfo['name'] = additionalThreadInfo['name'];
+      debug('thread info', threadInfo);
+      return threadInfo;
     });
   }
   sendMessage(threadId, msg) {
