@@ -3,13 +3,15 @@ const {
     Cli, AppServiceRegistration
   },
   Puppet,
-  MatrixPuppetBridgeBase
+  MatrixPuppetBridgeBase,
+  utils: { download }
 } = require("matrix-puppet-bridge");
 const FacebookClient = require('./client');
 const config = require('./config.json');
 const path = require('path');
 const puppet = new Puppet(path.join(__dirname, './config.json' ));
 const debug = require('debug')('matrix-puppet:facebook');
+const fs = require('fs');
 
 class App extends MatrixPuppetBridgeBase {
   getServicePrefix() {
@@ -198,9 +200,21 @@ class App extends MatrixPuppetBridgeBase {
     }
   }
   sendImageMessageAsPuppetToThirdPartyRoomWithId(id, data) {
-    return this.thirdPartyClient.sendMessage(id, {
-      body: data.text,
-      url: data.url
+    return download.getTempfile( data.url, { tagFilename: true }).then(({path}) => {
+      let imgstream = fs.createReadStream(path);
+      return this.thirdPartyClient.sendMessage(id, {
+        body: data.text,
+        attachment: imgstream,
+      });
+    });
+  }
+  sendFileMessageAsPuppetToThirdPartyRoomWithId(id, data) {
+    return download.getTempfile( data.url, { tagFilename: true }).then(({path}) => {
+      let imgstream = fs.createReadStream(path);
+      return this.thirdPartyClient.sendMessage(id, {
+        body: data.text,
+        attachment: imgstream,
+      });
     });
   }
 

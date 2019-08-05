@@ -18,10 +18,10 @@
     "url": "https://github.com/kfatehi/matrix-puppet-facebook.git"
   },
   "dependencies": {
-    "bluebird": "^3.4.6",
+    "bluebird": "^3.5.5",
     "debug": "^2.6.0",
     "facebook-chat-api": "^1.5.1",
-    "matrix-puppet-bridge": "matrix-hacks/matrix-puppet-bridge#decce78"
+    "matrix-puppet-bridge": "github:matrix-hacks/matrix-puppet-bridge#master"
   },
   "devDependencies": {
     "eslint": "^3.12.2"
