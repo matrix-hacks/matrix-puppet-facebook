@@ -151,17 +151,58 @@ class App extends MatrixPuppetBridgeBase {
       }
     });
 
-    this.thirdPartyClient.on('friendsList', (friends) => {
-      let thirdPartyUsers = [];
+    this.thirdPartyClient.on('friendsList', async (friends) => {
+        const statusRoomId = await this.getStatusRoomId();
+        debug(`Join ${friends.length} users to the status room (${statusRoomId})`);
 
-      for (const i in friends) {
-        const friend = friends[i];
-        thirdPartyUsers.push({
-          userId: friend.userID,
-          name: friend.fullName,
-          avatarUrl: friend.profilePicture
-        });
-      }
+        // If the server is not yet ready, it will throw "Too Many Requests" errors.
+        // Thus, we wait some time here.
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        const botIntent = this.getIntentFromApplicationServerBot();
+        const botClient = botIntent.getClient();
+        debug("BOT", botClient.getUserId());
+
+        for (const friend of friends) {
+          // TODO bug with maximum listeners on event emitter, use the following
+          // to test with a single facebook user
+          //  
+          // if (friend.fullName !== "Yodan Theburgimastr") {
+          //   continue; // DEBUG
+          // }
+          //
+
+          debug(`Getting user client for ${friend.fullName}`);
+
+          const ghostIntent = await this.getIntentFromThirdPartySenderId(
+            friend.userID,
+            friend.fullName,
+            friend.profilePicture
+          );
+          await ghostIntent.join(statusRoomId);
+          const ghostClient = await ghostIntent.getClient();
+
+          ghostClient.on("RoomMember.membership", async (event, member) => {
+            if (member.membership === "invite" && member.userId === ghostClient.getUserId()) {
+              try{
+                const roomAlias = ghostClient.getUserId().replace("@", "#");
+
+                await ghostClient.joinRoom(member.roomId);
+                await ghostClient.invite(member.roomId, botClient.getUserId());
+                await botClient.joinRoom(member.roomId);
+                await botClient.createAlias(roomAlias, member.roomId);
+
+                debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
+              } catch (err) {
+                  debug(err);
+              }
+            }
+          });
+
+          ghostClient.startClient();
+
+          debug(`User client started for ${friend.fullName}`);
+        }
 
       return this.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
     });
