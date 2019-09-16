@@ -161,7 +161,6 @@ class App extends MatrixPuppetBridgeBase {
 
         const botIntent = this.getIntentFromApplicationServerBot();
         const botClient = botIntent.getClient();
-        debug("BOT", botClient.getUserId());
 
         for (const friend of friends) {
           // TODO bug with maximum listeners on event emitter, use the following
@@ -204,7 +203,7 @@ class App extends MatrixPuppetBridgeBase {
           debug(`User client started for ${friend.fullName}`);
         }
 
-      return this.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
+        debug("Contact list synced");
     });
 
     return this.thirdPartyClient.login();
