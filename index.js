@@ -161,17 +161,17 @@ class App extends MatrixPuppetBridgeBase {
 
         const botIntent = this.getIntentFromApplicationServerBot();
         const botClient = botIntent.getClient();
+        const puppetClient = this.puppet.getClient();
+        const puppetId = puppetClient.getUserId();
 
         for (const friend of friends) {
-          // TODO bug with maximum listeners on event emitter, use the following
           // to test with a single facebook user
-          //  
+          //
           // if (friend.fullName !== "Yodan Theburgimastr") {
           //   continue; // DEBUG
           // }
-          //
 
-          debug(`Getting user client for ${friend.fullName}`);
+          debug(`Getting user client for ${friend.fullName} (ID: ${friend.userID})`)
 
           const ghostIntent = await this.getIntentFromThirdPartySenderId(
             friend.userID,
@@ -183,13 +183,38 @@ class App extends MatrixPuppetBridgeBase {
 
           ghostClient.on("RoomMember.membership", async (event, member) => {
             if (member.membership === "invite" && member.userId === ghostClient.getUserId()) {
-              try{
+              try {
                 const roomAlias = ghostClient.getUserId().replace("@", "#");
+                const roomIdInvitationRoom = member.roomId;
 
-                await ghostClient.joinRoom(member.roomId);
-                await ghostClient.invite(member.roomId, botClient.getUserId());
-                await botClient.joinRoom(member.roomId);
-                await botClient.createAlias(roomAlias, member.roomId);
+                let roomId;
+                try {
+                  roomId = (await ghostClient.getRoomIdForAlias(roomAlias)).room_id;
+                  debug(`Found matrix room via alias "${roomAlias}" (ID: ${roomId})`);
+
+                  await ghostClient.joinRoom(roomIdInvitationRoom);
+                  await ghostClient.sendMessage(roomIdInvitationRoom, {
+                          "msgtype": "m.text",
+                          "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is NOT connected to facebook!`
+                      });
+                  await ghostClient.leave(roomIdInvitationRoom);
+
+                } catch(err) {
+                  roomId = roomIdInvitationRoom;
+                  debug(`No matrix room found via alias, using the invite room (ID: ${roomId})`);
+
+                  await ghostClient.joinRoom(roomId);
+                  debug(`${friend.fullName} joined matrix room ${roomId}`);
+                  await ghostClient.setRoomName(roomId, friend.fullName);
+                  debug(`Name of matrix room ${roomId} set to "${friend.fullName}"`);
+                  await ghostClient.deleteAlias(roomAlias);
+                  debug(`Deleted alias "${roomAlias}"`);
+                  await ghostClient.createAlias(roomAlias, roomId);
+                  debug(`Created alias "${roomAlias}" for matrix room ${roomId}`);
+                }
+
+                await ghostClient.invite(roomId, puppetId);
+                debug(`Invited myself (${puppetId}) in case I had left the conversation and the room already exists`);
 
                 debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
               } catch (err) {
