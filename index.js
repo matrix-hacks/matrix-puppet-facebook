@@ -167,9 +167,9 @@ class App extends MatrixPuppetBridgeBase {
         for (const friend of friends) {
           // to test with a single facebook user
           //
-          if (friend.fullName !== "Yodan Theburgimastr") {
-            continue; // DEBUG
-          }
+          // if (friend.fullName !== "Yodan Theburgimastr") {
+          //   continue; // DEBUG
+          // }
 
           debug(`Getting user client for ${friend.fullName} (ID: ${friend.userID})`)
 
