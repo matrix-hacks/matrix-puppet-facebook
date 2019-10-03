@@ -167,9 +167,9 @@ class App extends MatrixPuppetBridgeBase {
         for (const friend of friends) {
           // to test with a single facebook user
           //
-          // if (friend.fullName !== "Yodan Theburgimastr") {
-          //   continue; // DEBUG
-          // }
+          if (friend.fullName !== "Yodan Theburgimastr") {
+            continue; // DEBUG
+          }
 
           debug(`Getting user client for ${friend.fullName} (ID: ${friend.userID})`)
 
@@ -192,13 +192,25 @@ class App extends MatrixPuppetBridgeBase {
                   roomId = (await ghostClient.getRoomIdForAlias(roomAlias)).room_id;
                   debug(`Found matrix room via alias "${roomAlias}" (ID: ${roomId})`);
 
-                  await ghostClient.joinRoom(roomIdInvitationRoom);
-                  await ghostClient.sendMessage(roomIdInvitationRoom, {
-                          "msgtype": "m.text",
-                          "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is NOT connected to facebook!`
-                      });
-                  await ghostClient.leave(roomIdInvitationRoom);
+                  const room = ghostClient.getRoom(roomId);
+                  const isDM = (room.getDMInviter()
+                                || (allMembers.length == 2
+                                    && allMembers.some((m) => {
+                                      return m === m.getDMInviter();
+                                    }))
+                               );
 
+                  if (isDM) {
+                    await ghostClient.joinRoom(roomIdInvitationRoom);
+                    await ghostClient.sendMessage(roomIdInvitationRoom, {
+                          "msgtype": "m.text",
+                          "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is *NOT* connected to facebook!`
+                    });
+                    await ghostClient.leave(roomIdInvitationRoom);
+
+                    await ghostClient.invite(roomId, puppetId);
+                    debug(`Invited myself (${puppetId}) in case I had left the conversation and the room already exists`);
+                  }
                 } catch(err) {
                   roomId = roomIdInvitationRoom;
                   debug(`No matrix room found via alias, using the invite room (ID: ${roomId})`);
@@ -207,14 +219,13 @@ class App extends MatrixPuppetBridgeBase {
                   debug(`${friend.fullName} joined matrix room ${roomId}`);
                   await ghostClient.setRoomName(roomId, friend.fullName);
                   debug(`Name of matrix room ${roomId} set to "${friend.fullName}"`);
-                  await ghostClient.deleteAlias(roomAlias);
-                  debug(`Deleted alias "${roomAlias}"`);
+                  // await ghostClient.deleteAlias(roomAlias); // TODO is this necessary?
+                  // debug(`Deleted alias "${roomAlias}"`);
                   await ghostClient.createAlias(roomAlias, roomId);
                   debug(`Created alias "${roomAlias}" for matrix room ${roomId}`);
+                  await ghostClient.invite(roomId, puppetId);
+                  debug(`Invited myself (${puppetId})`);
                 }
-
-                await ghostClient.invite(roomId, puppetId);
-                debug(`Invited myself (${puppetId}) in case I had left the conversation and the room already exists`);
 
                 debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
               } catch (err) {
