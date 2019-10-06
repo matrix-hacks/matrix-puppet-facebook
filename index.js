@@ -164,14 +164,15 @@ class App extends MatrixPuppetBridgeBase {
         const puppetClient = this.puppet.getClient();
         const puppetId = puppetClient.getUserId();
 
-        for (const friend of friends) {
+        for (let i = 0; i < friends.length; i++) {
+          const friend = friends[i]
           // to test with a single facebook user
           //
-          // if (friend.fullName !== "Yodan Theburgimastr") {
+          // if (friend.fullName !== "Yodan Theburgimastr" && friend.fullName !== "Lord Reetveter") {
           //   continue; // DEBUG
           // }
 
-          debug(`Getting user client for ${friend.fullName} (ID: ${friend.userID})`)
+          debug(`Getting user client ${i}/${friends.length} for ${friend.fullName} (ID: ${friend.userID})`)
 
           const ghostIntent = await this.getIntentFromThirdPartySenderId(
             friend.userID,
@@ -180,61 +181,62 @@ class App extends MatrixPuppetBridgeBase {
           );
           await ghostIntent.join(statusRoomId);
           const ghostClient = await ghostIntent.getClient();
+          ghostClient.setMaxListeners(ghostClient.getMaxListeners() + 1);
 
           ghostClient.on("RoomMember.membership", async (event, member) => {
-            if (member.membership === "invite" && member.userId === ghostClient.getUserId()) {
-              try {
-                const roomAlias = ghostClient.getUserId().replace("@", "#");
-                const roomIdInvitationRoom = member.roomId;
+            // https://github.com/matrix-org/matrix-js-sdk/issues/720
+            const roomIdInvitationRoom = member.roomId;
+            const invitationRoom = puppetClient.getRoom(roomIdInvitationRoom);
+            const invitationRoomAllMembers = invitationRoom.currentState.getMembers();
+            const isDM = (invitationRoom.getDMInviter() || (invitationRoomAllMembers.length == 2 && invitationRoomAllMembers.some((m) => {return m === m.getDMInviter();})));
 
-                let roomId;
+            if (isDM) {
+              if (member.membership === "invite" && member.userId === ghostClient.getUserId()) {
                 try {
-                  roomId = (await ghostClient.getRoomIdForAlias(roomAlias)).room_id;
-                  debug(`Found matrix room via alias "${roomAlias}" (ID: ${roomId})`);
+                  const roomAlias = ghostClient.getUserId().replace("@", "#");
 
-                  const room = ghostClient.getRoom(roomId);
-                  const isDM = (room.getDMInviter()
-                                || (allMembers.length == 2
-                                    && allMembers.some((m) => {
-                                      return m === m.getDMInviter();
-                                    }))
-                               );
+                  let roomId;
+                  try {
+                    roomId = (await ghostClient.getRoomIdForAlias(roomAlias)).room_id;
+                    debug(`Found matrix room via alias "${roomAlias}" (ID: ${roomId})`);
 
-                  if (isDM) {
                     await ghostClient.joinRoom(roomIdInvitationRoom);
                     await ghostClient.sendMessage(roomIdInvitationRoom, {
-                          "msgtype": "m.text",
-                          "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is *NOT* connected to facebook!`
+                      "msgtype": "m.text",
+                      "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is *NOT* connected to facebook!`
                     });
                     await ghostClient.leave(roomIdInvitationRoom);
 
                     await ghostClient.invite(roomId, puppetId);
                     debug(`Invited myself (${puppetId}) in case I had left the conversation and the room already exists`);
+                  } catch(err) {
+                    roomId = roomIdInvitationRoom;
+                    debug(`No matrix room found via alias, using the invite room (ID: ${roomId})`);
+
+                    await ghostClient.joinRoom(roomId);
+                    debug(`${friend.fullName} joined matrix room ${roomId}`);
+                    await ghostClient.setRoomName(roomId, friend.fullName);
+                    debug(`Name of matrix room ${roomId} set to "${friend.fullName}"`);
+                    // await ghostClient.deleteAlias(roomAlias); // TODO is this necessary?
+                    // debug(`Deleted alias "${roomAlias}"`);
+                    await ghostClient.createAlias(roomAlias, roomId);
+                    debug(`Created alias "${roomAlias}" for matrix room ${roomId}`);
+                    await ghostClient.invite(roomId, puppetId);
+                    debug(`Invited myself (${puppetId})`);
                   }
-                } catch(err) {
-                  roomId = roomIdInvitationRoom;
-                  debug(`No matrix room found via alias, using the invite room (ID: ${roomId})`);
 
-                  await ghostClient.joinRoom(roomId);
-                  debug(`${friend.fullName} joined matrix room ${roomId}`);
-                  await ghostClient.setRoomName(roomId, friend.fullName);
-                  debug(`Name of matrix room ${roomId} set to "${friend.fullName}"`);
-                  // await ghostClient.deleteAlias(roomAlias); // TODO is this necessary?
-                  // debug(`Deleted alias "${roomAlias}"`);
-                  await ghostClient.createAlias(roomAlias, roomId);
-                  debug(`Created alias "${roomAlias}" for matrix room ${roomId}`);
-                  await ghostClient.invite(roomId, puppetId);
-                  debug(`Invited myself (${puppetId})`);
+                  debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
+                } catch (err) {
+                    debug(err);
                 }
-
-                debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
-              } catch (err) {
-                  debug(err);
               }
+            } else { // !isDM
+              await ghostClient.joinRoom(member.roomId);
+              debug(`${friend.fullName} joined matrix room ${member.roomId}`);
             }
           });
 
-          ghostClient.startClient();
+          await ghostClient.startClient();
 
           debug(`User client started for ${friend.fullName}`);
         }
