@@ -25,23 +25,37 @@ class App extends MatrixPuppetBridgeBase {
   initThirdPartyClient() {
     this.threadInfo = {};
     this.thirdPartyClient = new FacebookClient();
-    this.thirdPartyClient.on('message', (data) => {
-      const { senderID, body, threadID, isGroup, attachments } = data;
+    this.thirdPartyClient.on('message', async (data) => {
+      const { senderID, body, threadID, isGroup, attachments, messageReply } = data;
       const isMe = senderID === this.thirdPartyClient.userId;
       debug("ISME? " + isMe);
       this.threadInfo[threadID] = { isGroup };
 
-      var payload;
+      let payload;
+
       if (body) {
         debug('Message has body');
-        payload = {
-          roomId: threadID,
-          // senderName: senderID,
-          senderId: isMe ? undefined : senderID,
-          text: body
-        };
+
+        if (messageReply) {
+          debug('Message has a reply');
+
+          let userData = await this.getThirdPartyUserDataById(messageReply.senderID);
+          let replyHtml = `<mx-reply><blockquote><strong>${userData.senderName}</strong><br><i>${messageReply.body}</i></blockquote></mx-reply>${body}`;
+
+          payload = {
+            roomId: threadID,
+            senderId: isMe ? undefined : senderID,
+            html: replyHtml
+          };
+        } else {
+          payload = {
+            roomId: threadID,
+            senderId: isMe ? undefined : senderID,
+            text: body
+          };
+        }
+
         debug(payload);
-        // Don't return yet -- there may be attachments, too.
         this.handleThirdPartyRoomMessage(payload);
       }
 

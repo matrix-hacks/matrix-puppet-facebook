@@ -48,6 +48,7 @@ class Client extends EventEmitter {
           this.emit('friendsList', friends);
         }
       });
+
       debug('current user id', this.userId);
       let stop = api.listen((err, data) => {
         if ( err ) {
@@ -68,7 +69,7 @@ class Client extends EventEmitter {
           } else {
             this.emit('typing:stop', data.threadId, data.from);
           }
-        } else if ( data.type === 'message' && data.messageID !== this.lastMsgId) {
+        } else if ((data.type === 'message' || data.type === 'message_reply') && data.messageID !== this.lastMsgId) {
           this.lastMsgId = data.messageID;
           this.emit('message', data);
         }
