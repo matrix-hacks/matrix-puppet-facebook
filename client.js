@@ -72,6 +72,11 @@ class Client extends EventEmitter {
         } else if ((data.type === 'message' || data.type === 'message_reply') && data.messageID !== this.lastMsgId) {
           this.lastMsgId = data.messageID;
           this.emit('message', data);
+        } else if (data.type === 'event') {
+          this.lastMsgId = data.messageID;
+          this.emit('event', data);
+        } else {
+          debug("Unknown type received: ", data.type);
         }
       });
 
@@ -87,6 +92,7 @@ class Client extends EventEmitter {
       return this;
     });
   }
+
   getUserInfoById(userId) {
     const getUserInfo = Promise.promisify(this.api.getUserInfo);
     return getUserInfo([userId]).then(res=>{
@@ -95,6 +101,7 @@ class Client extends EventEmitter {
       return userInfo;
     });
   }
+
   getThreadName(threadInfo) {
     // Takes threadInfo as an argument and returns a Promise that resolves to
     // an array with at least the other participant's name on the name
@@ -129,6 +136,7 @@ class Client extends EventEmitter {
       return Promise.resolve({name: threadInfo['name']});
     }
   }
+
   getThreadInfo(threadId) {
     const getThreadInfo = Promise.promisify(this.api.getThreadInfo);
     // I need threadInfo to be in this scope so that it can be called from inside both of the chained .than functions
@@ -142,6 +150,7 @@ class Client extends EventEmitter {
       return threadInfo;
     });
   }
+
   sendMessage(threadId, msg) {
     const sendMessage = Promise.promisify(this.api.sendMessage);
     return sendMessage(msg, threadId).then(res=>{
@@ -149,6 +158,7 @@ class Client extends EventEmitter {
       return res;
     });
   }
+
   markAsRead(threadId) {
     return new Promise((resolve, reject) => {
       this.api.markAsRead(threadId, (err) => {

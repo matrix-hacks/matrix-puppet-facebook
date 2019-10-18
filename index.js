@@ -25,6 +25,23 @@ class App extends MatrixPuppetBridgeBase {
   initThirdPartyClient() {
     this.threadInfo = {};
     this.thirdPartyClient = new FacebookClient();
+
+    this.thirdPartyClient.on('event', async (data) => {
+      const { author, threadID, logMessageBody } = data;
+      const isMe = (author === this.thirdPartyClient.userId);
+      debug("ISME? " + isMe);
+      debug('Event has log');
+
+      let payload = {
+          roomId: threadID,
+          senderId: isMe ? undefined : author,
+          text: logMessageBody
+        };
+
+      debug(payload);
+      this.handleThirdPartyRoomMessage(payload);
+    });
+
     this.thirdPartyClient.on('message', async (data) => {
       const { senderID, body, threadID, isGroup, attachments, messageReply } = data;
       const isMe = senderID === this.thirdPartyClient.userId;
@@ -186,13 +203,23 @@ class App extends MatrixPuppetBridgeBase {
   getThirdPartyUserDataById(id) {
     return this.thirdPartyClient.getUserInfoById(id).then(userInfo=>{
       debug('got user data', userInfo);
-      // TODO use userInfo.thumbSrc as the avatar
-      return { senderName: userInfo.name };
+      return {
+          senderName: userInfo.name,
+          senderAvatar: userInfo.thumbSrc
+      };
     });
   }
+
   getThirdPartyRoomDataById(threadId) {
     debug('getting third party room data by thread id', threadId);
-    let label = this.threadInfo[threadId].isGroup ? "Group" : "Friend";
+
+    let label;
+    if (threadId in this.threadInfo) {
+      label = this.threadInfo[threadId].isGroup ? "Group" : "Friend";
+    } else {
+      label = "Conversation";
+    }
+
     return this.thirdPartyClient.getThreadInfo(threadId).then(data=>{
       let roomData = {
         name: data.name ? data.name : '',
@@ -202,6 +229,7 @@ class App extends MatrixPuppetBridgeBase {
       return roomData;
     });
   }
+
   sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
     const url = text.match(/(https?:\/\/[^\s]+)/g);
     if (url) {
@@ -213,6 +241,14 @@ class App extends MatrixPuppetBridgeBase {
       return this.thirdPartyClient.sendMessage(id, text);
     }
   }
+
+  sendReplyMessageAsPuppetToThirdPartyRoomWithId(id, text, replyText) {
+    return this.thirdPartyClient.sendMessage(id, {
+      body: text,
+      reply: replyText,
+    });
+  }
+
   sendImageMessageAsPuppetToThirdPartyRoomWithId(id, data) {
     return download.getTempfile( data.url, { tagFilename: true }).then(({path}) => {
       let imgstream = fs.createReadStream(path);
@@ -222,6 +258,7 @@ class App extends MatrixPuppetBridgeBase {
       });
     });
   }
+
   sendFileMessageAsPuppetToThirdPartyRoomWithId(id, data) {
     return download.getTempfile( data.url, { tagFilename: true }).then(({path}) => {
       let imgstream = fs.createReadStream(path);
