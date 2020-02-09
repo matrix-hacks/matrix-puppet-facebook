@@ -49,7 +49,7 @@ class Client extends EventEmitter {
         }
       });
       debug('current user id', this.userId);
-      let stop = api.listen((err, data) => {
+      let stop = api.listenMqtt((err, data) => {
         if ( err ) {
           debug('error', err);
           console.log('gonna re-login...');
