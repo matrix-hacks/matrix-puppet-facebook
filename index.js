@@ -84,6 +84,16 @@ class App extends MatrixPuppetBridgeBase {
               w: attachment.largePreviewWidth || attachment.previewWidth
             };
             this.handleThirdPartyRoomImageMessage(payload);
+          } else if (attachment.type === 'video') {
+            debug('Attachment is a video');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.filename,
+              url: attachment.url,
+              mimetype: 'video/mpeg'
+            };
+            this.handleThirdPartyRoomMessageWithAttachment(payload);
           } else if (attachment.type === 'file') {
             debug('Attachment is a file');
             payload = {
