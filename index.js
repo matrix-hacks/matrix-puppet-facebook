@@ -68,8 +68,8 @@ class App extends MatrixPuppetBridgeBase {
               senderId: isMe? undefined : senderID,
               text: attachment.filename,
               url: attachment.previewUrl,
-              h: attachment.previewWidth,
-              w: attachment.previewHeight,
+              w: attachment.previewWidth,
+              h: attachment.previewHeight,
               mimetype: 'image/gif'
             };
             this.handleThirdPartyRoomImageMessage(payload);
