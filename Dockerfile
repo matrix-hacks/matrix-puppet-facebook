@@ -7,7 +7,7 @@ ENV NODE_ENV $NODE_ENV
 
 COPY . .
 
-RUN apk add git
+RUN apk add git ffmpeg
 RUN npm install
 
 EXPOSE 8090

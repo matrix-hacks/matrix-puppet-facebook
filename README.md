@@ -15,6 +15,7 @@ To use the bridge, just wait until you receive a message from another facebook u
 
 - node.js: [nodejs.org: Installing Node.js via package manager](https://nodejs.org/en/download/package-manager/)
 - git
+- ffmpeg (optionnal: if not installed videos will only be shown as regular files on matrix client => no video preview)
 
 ## installation
 
