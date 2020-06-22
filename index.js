@@ -94,6 +94,16 @@ class App extends MatrixPuppetBridgeBase {
               mimetype: 'video/mpeg'
             };
             this.handleThirdPartyRoomMessageWithAttachment(payload);
+          } else if (attachment.type === 'audio') {
+            debug('Attachment is an audio clip');
+            payload = {
+              roomId: threadID,
+              senderId: isMe? undefined : senderID,
+              text: attachment.filename,
+              url: attachment.url,
+              mimetype: 'audio/mpeg'
+            };
+            this.handleThirdPartyRoomMessageWithAttachment(payload);
           } else if (attachment.type === 'file') {
             debug('Attachment is a file');
             payload = {
