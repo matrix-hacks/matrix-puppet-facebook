@@ -171,19 +171,97 @@ class App extends MatrixPuppetBridgeBase {
       }
     });
 
-    this.thirdPartyClient.on('friendsList', (friends) => {
-      let thirdPartyUsers = [];
+    this.thirdPartyClient.on('friendsList', async (friends) => {
+        const statusRoomId = await this.getStatusRoomId();
+        debug(`Join ${friends.length} users to the status room (${statusRoomId})`);
 
-      for (const i in friends) {
-        const friend = friends[i];
-        thirdPartyUsers.push({
-          userId: friend.userID,
-          name: friend.fullName,
-          avatarUrl: friend.profilePicture
-        });
-      }
+        // If the server is not yet ready, it will throw "Too Many Requests" errors.
+        // Thus, we wait some time here.
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      return this.joinThirdPartyUsersToStatusRoom(thirdPartyUsers);
+        const botIntent = this.getIntentFromApplicationServerBot();
+        const botClient = botIntent.getClient();
+        const puppetClient = this.puppet.getClient();
+        const puppetId = puppetClient.getUserId();
+
+        for (let i = 0; i < friends.length; i++) {
+          const friend = friends[i]
+          // to test with a single facebook user
+          //
+          // if (friend.fullName !== "Yodan Theburgimastr" && friend.fullName !== "Lord Reetveter") {
+          //   continue; // DEBUG
+          // }
+
+          debug(`Getting user client ${i}/${friends.length} for ${friend.fullName} (ID: ${friend.userID})`)
+
+          const ghostIntent = await this.getIntentFromThirdPartySenderId(
+            friend.userID,
+            friend.fullName,
+            friend.profilePicture
+          );
+          await ghostIntent.join(statusRoomId);
+          const ghostClient = await ghostIntent.getClient();
+          ghostClient.setMaxListeners(ghostClient.getMaxListeners() + 1);
+
+          ghostClient.on("RoomMember.membership", async (event, member) => {
+            // https://github.com/matrix-org/matrix-js-sdk/issues/720
+            const roomIdInvitationRoom = member.roomId;
+            const invitationRoom = puppetClient.getRoom(roomIdInvitationRoom);
+            const invitationRoomAllMembers = invitationRoom.currentState.getMembers();
+            const isDM = (invitationRoom.getDMInviter() || (invitationRoomAllMembers.length == 2 && invitationRoomAllMembers.some((m) => {return m === m.getDMInviter();})));
+
+            if (isDM) {
+              if (member.membership === "invite" && member.userId === ghostClient.getUserId()) {
+                try {
+                  const roomAlias = ghostClient.getUserId().replace("@", "#");
+
+                  let roomId;
+                  try {
+                    roomId = (await ghostClient.getRoomIdForAlias(roomAlias)).room_id;
+                    debug(`Found matrix room via alias "${roomAlias}" (ID: ${roomId})`);
+
+                    await ghostClient.joinRoom(roomIdInvitationRoom);
+                    await ghostClient.sendMessage(roomIdInvitationRoom, {
+                      "msgtype": "m.text",
+                      "body": `Please use matrix room ${roomAlias} (ID: ${roomId}) for your communication with ${friend.fullName}. This room is *NOT* connected to facebook!`
+                    });
+                    await ghostClient.leave(roomIdInvitationRoom);
+
+                    await ghostClient.invite(roomId, puppetId);
+                    debug(`Invited myself (${puppetId}) in case I had left the conversation and the room already exists`);
+                  } catch(err) {
+                    roomId = roomIdInvitationRoom;
+                    debug(`No matrix room found via alias, using the invite room (ID: ${roomId})`);
+
+                    await ghostClient.joinRoom(roomId);
+                    debug(`${friend.fullName} joined matrix room ${roomId}`);
+                    await ghostClient.setRoomName(roomId, friend.fullName);
+                    debug(`Name of matrix room ${roomId} set to "${friend.fullName}"`);
+                    // await ghostClient.deleteAlias(roomAlias); // TODO is this necessary?
+                    // debug(`Deleted alias "${roomAlias}"`);
+                    await ghostClient.createAlias(roomAlias, roomId);
+                    debug(`Created alias "${roomAlias}" for matrix room ${roomId}`);
+                    await ghostClient.invite(roomId, puppetId);
+                    debug(`Invited myself (${puppetId})`);
+                  }
+
+                  debug(`Auto-joined ${ghostClient.getUserId()} and ${botClient.getUserId()} into room ${member.roomId}`);
+                } catch (err) {
+                    debug(err);
+                }
+              }
+            } else { // !isDM
+              await ghostClient.joinRoom(member.roomId);
+              debug(`${friend.fullName} joined matrix room ${member.roomId}`);
+            }
+          });
+
+          await ghostClient.startClient();
+
+          debug(`User client started for ${friend.fullName}`);
+        }
+
+        debug("Contact list synced");
     });
 
     return this.thirdPartyClient.login();
